@@ -34,41 +34,53 @@ uses
   SysUtils,
   Generics.Collections,
   dmfbr.injector,
-  dmfbr.bind.abstract;
+  dmfbr.bind.abstract,
+  app.injector.events;
 
 type
   TBind<T: class, constructor> = class(TBindAbstract<T>)
   public
-    constructor Create(const AOnFree: TFreeCallback;
-      const AOnNotifier: TNotifierCallback);
-    destructor Destroy; override;
-    class function Singleton(const AOnFree: TFreeCallback = nil;
-                             const AOnNotifier: TNotifierCallback = nil): TBind<TObject>;
-    class function SingletonLazy(const AOnFree: TFreeCallback = nil;
-                                 const AOnNotifier: TNotifierCallback = nil): TBind<TObject>;
-    class function Factory(const AOnFree: TFreeCallback = nil;
-                           const AOnNotifier: TNotifierCallback = nil): TBind<TObject>;
-    class function SingletonInterface<I: IInterface>(const AOnFree: TFreeCallback = nil;
-      const AOnNotifier: TNotifierCallback = nil): TBind<TObject>;
+    constructor Create(const AOnCreate: TProc<T>;
+      const AOnDestroy: TProc<T>;
+      const AOnConstructorParams: TConstructorCallback); overload;
+    class function Singleton(const AOnCreate: TProc<T> = nil;
+      const AOnDestroy: TProc<T> = nil;
+      const AOnConstructorParams: TConstructorCallback = nil): TBind<TObject>;
+    class function SingletonLazy(const AOnCreate: TProc<T> = nil;
+      const AOnDestroy: TProc<T> = nil;
+      const AOnConstructorParams: TConstructorCallback = nil): TBind<TObject>;
+    class function Factory(const AOnCreate: TProc<T> = nil;
+      const AOnDestroy: TProc<T> = nil;
+      const AOnConstructorParams: TConstructorCallback = nil): TBind<TObject>;
+    class function SingletonInterface<I: IInterface>(const AOnCreate: TProc<T> = nil;
+      const AOnDestroy: TProc<T> = nil;
+      const AOnConstructorParams: TConstructorCallback = nil): TBind<TObject>;
+    class function AddInstance(const AInstance: TObject): TBind<TObject>;
   end;
 
-  TSingletonBind<T: class, constructor> = class(TBind<TObject>)
+  TSingletonBind<T: class, constructor> = class(TBind<T>)
   public
     procedure IncludeInjector(const AAppInjector: TAppInjector); override;
   end;
 
-  TSingletonLazyBind<T: class, constructor> = class(TBind<TObject>)
+  TSingletonLazyBind<T: class, constructor> = class(TBind<T>)
   public
     procedure IncludeInjector(const AAppInjector: TAppInjector); override;
   end;
 
-  TFactoryBind<T: class, constructor> = class(TBind<TObject>)
+  TFactoryBind<T: class, constructor> = class(TBind<T>)
   public
     procedure IncludeInjector(const AAppInjector: TAppInjector); override;
   end;
 
-  TSingletonInterfaceBind<I: IInterface; T: class, constructor> = class(TBind<TObject>)
+  TSingletonInterfaceBind<I: IInterface; T: class, constructor> = class(TBind<T>)
   public
+    procedure IncludeInjector(const AAppInjector: TAppInjector); override;
+  end;
+
+  TAddInstanceBind<T: class, constructor> = class(TBind<T>)
+  public
+    constructor Create(const AInstance: TObject); overload;
     procedure IncludeInjector(const AAppInjector: TAppInjector); override;
   end;
 
@@ -76,70 +88,95 @@ implementation
 
 { TBind<T> }
 
-constructor TBind<T>.Create(const AOnFree: TFreeCallback;
-  const AOnNotifier: TNotifierCallback);
+constructor TBind<T>.Create(const AOnCreate: TProc<T>;
+      const AOnDestroy: TProc<T>;
+      const AOnConstructorParams: TConstructorCallback);
 begin
-  FFreeCallback := AOnFree;
-  FNotifierCallback := AOnNotifier;
+  FOnCreate := AOnCreate;
+  FOnDestroy := AOnDestroy;
+  FOnParams := AOnConstructorParams;
 end;
 
-destructor TBind<T>.Destroy;
+class function TBind<T>.Factory(const AOnCreate: TProc<T>;
+      const AOnDestroy: TProc<T>;
+      const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
 begin
-  FFreeCallback := nil;
-  FNotifierCallback := nil;
-  inherited;
+  Result := TBind<TObject>(TFactoryBind<T>.Create(AOnCreate,
+                                                  AOnDestroy,
+                                                  AOnConstructorParams));
 end;
 
-class function TBind<T>.Factory(const AOnFree: TFreeCallback;
-  const AOnNotifier: TNotifierCallback): TBind<TObject>;
+class function TBind<T>.Singleton(const AOnCreate: TProc<T>;
+      const AOnDestroy: TProc<T>;
+      const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
 begin
-  Result := TFactoryBind<T>.Create(AOnFree, AOnNotifier);
+  Result := TBind<TObject>(TSingletonBind<T>.Create(AOnCreate,
+                                                    AOnDestroy,
+                                                    AOnConstructorParams));
 end;
 
-class function TBind<T>.Singleton(const AOnFree: TFreeCallback;
-  const AOnNotifier: TNotifierCallback): TBind<TObject>;
+class function TBind<T>.SingletonInterface<I>(const AOnCreate: TProc<T>;
+      const AOnDestroy: TProc<T>;
+      const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
 begin
-  Result := TSingletonBind<T>.Create(AOnFree, AOnNotifier);
+  Result := TBind<TObject>(TSingletonInterfaceBind<I, T>.Create(AOnCreate,
+                                                                AOnDestroy,
+                                                                AOnConstructorParams));
 end;
 
-class function TBind<T>.SingletonInterface<I>(const AOnFree: TFreeCallback;
-  const AOnNotifier: TNotifierCallback): TBind<TObject>;
+class function TBind<T>.SingletonLazy(const AOnCreate: TProc<T>;
+      const AOnDestroy: TProc<T>;
+      const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
 begin
-  Result := TSingletonInterfaceBind<I, T>.Create(AOnFree, AOnNotifier);
+  Result := TBind<TObject>(TSingletonLazyBind<T>.Create(AOnCreate,
+                                                        AOnDestroy,
+                                                        AOnConstructorParams));
 end;
 
-class function TBind<T>.SingletonLazy(const AOnFree: TFreeCallback;
-  const AOnNotifier: TNotifierCallback): TBind<TObject>;
+class function TBind<T>.AddInstance(const AInstance: TObject): TBind<TObject>;
 begin
-  Result := TSingletonLazyBind<T>.Create(AOnFree, AOnNotifier);
+  Result := TBind<TObject>(TAddInstanceBind<T>.Create(AInstance));
 end;
 
 { TSingletonBind }
 
 procedure TSingletonBind<T>.IncludeInjector(const AAppInjector: TAppInjector);
 begin
-  AAppInjector.Singleton<T>();
+  AAppInjector.Singleton<T>(FOnCreate, FOnDestroy, FOnParams);
 end;
 
 { TSingletonLazyBind<T> }
 
 procedure TSingletonLazyBind<T>.IncludeInjector(const AAppInjector: TAppInjector);
 begin
-  AAppInjector.SingletonLazy<T>();
+  AAppInjector.SingletonLazy<T>(FOnCreate, FOnDestroy, FOnParams);
 end;
 
 { TFactoryBind<T> }
 
 procedure TFactoryBind<T>.IncludeInjector(const AAppInjector: TAppInjector);
 begin
-  AAppInjector.Factory<T>();
+  AAppInjector.Factory<T>(FOnCreate, FOnDestroy, FOnParams);
 end;
 
 { TSingletonInterfaceBind<T> }
 
-procedure TSingletonInterfaceBind<I, T>.IncludeInjector(const AAppInjector: TAppInjector);
+procedure TSingletonInterfaceBind<I, T>.IncludeInjector(
+  const AAppInjector: TAppInjector);
 begin
-  AAppInjector.SingletonInterface<I, T>();
+  AAppInjector.SingletonInterface<I, T>('', FOnCreate, FOnDestroy, FOnParams);
+end;
+
+{ TInstanceBind<I, T> }
+
+constructor TAddInstanceBind<T>.Create(const AInstance: TObject);
+begin
+  FAddInstance := Ainstance;
+end;
+
+procedure TAddInstanceBind<T>.IncludeInjector(const AAppInjector: TAppInjector);
+begin
+  AAppInjector.AddInstance<T>(FAddInstance);
 end;
 
 end.

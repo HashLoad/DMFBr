@@ -39,17 +39,17 @@ type
   private
     FTracker: TTracker;
   public
-    constructor Create;
+    constructor Create(const ATracker: TTracker);
     destructor Destroy; override;
     function GetBind<T: class, constructor>: TResultPair<T, string>;
-    procedure IncludeTracker(const ATracker: TTracker);
+//    procedure IncludeTracker(const ATracker: TTracker);
   end;
 
 implementation
 
-constructor TBindProvider.Create();
+constructor TBindProvider.Create(const ATracker: TTracker);
 begin
-
+  FTracker := ATracker;
 end;
 
 destructor TBindProvider.Destroy;
@@ -58,11 +58,11 @@ begin
   inherited;
 end;
 
-procedure TBindProvider.IncludeTracker(
-  const ATracker: TTracker);
-begin
-  FTracker := ATracker;
-end;
+//procedure TBindProvider.IncludeTracker(
+//  const ATracker: TTracker);
+//begin
+//  FTracker := ATracker;
+//end;
 
 function TBindProvider.GetBind<T>: TResultPair<T, string>;
 begin

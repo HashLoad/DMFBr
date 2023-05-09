@@ -60,12 +60,6 @@ type
     constructor Create; override;
   end;
 
-//  TAppInjectorHelper = class helper for TAppInjector
-//  public
-//    function CreateInstance(const AClass: TClass;
-//      const AMethodName: string = 'Create'): TObject;
-//  end;
-
 var
   AppInjector: TAppInjector;
 
@@ -104,10 +98,10 @@ begin
 end;
 procedure TCoreInjector._BindProviderInjector;
 begin
-  Self.Factory<TBindProvider>(
-    procedure (Value: TBindProvider)
+  Self.Factory<TBindProvider>(nil, nil,
+    function: TConstructorParams
     begin
-      Value.IncludeTracker(Self.Get<TTracker>);
+      Result := [TValue.From<TTracker>(Self.Get<TTracker>)];
     end);
 end;
 
@@ -221,50 +215,6 @@ begin
     LKey := T.ClassName;
   Self.Remove<T>(LKey);
 end;
-
-{ TAppInjectorHelper }
-
-//function TAppInjectorHelper.CreateInstance(const AClass: TClass;
-//  const AMethodName: string): TObject;
-//var
-//  LContext: TRttiContext;
-//  LTypeService: TRttiType;
-//  LConstructorMethod: TRttiMethod;
-//  LInstance: TValue;
-//  LParameters: TArray<TRttiParameter>;
-//  LParameterType: TRttiType;
-//  LArgs: TArray<TValue>;
-//  LFor: integer;
-//begin
-//  Result := nil;
-//  LContext := TRttiContext.Create;
-//  try
-//    LTypeService := LContext.GetType(AClass);
-//    LConstructorMethod := LTypeService.GetMethod(AMethodName);
-//    if LConstructorMethod.IsConstructor then
-//    begin
-//      LParameters := LConstructorMethod.GetParameters;
-//      if Length(LParameters) = 0 then
-//      begin
-//        LInstance := LConstructorMethod.Invoke(LTypeService.AsInstance
-//                                                           .MetaClassType, LArgs);
-//        Result := LInstance.AsObject;
-//        Exit;
-//      end;
-//      SetLength(LArgs, Length(LParameters));
-//      for LFor := 0 to High(LParameters) do
-//      begin
-//        LParameterType := LParameters[LFor].ParamType;
-//        if Assigned(LParameterType) then
-//          LArgs[LFor] := TValue.From(Self.Get<TObject>(LParameterType.AsInstance.ClassName))
-//        else
-//          LArgs[LFor] := TValue.Empty;
-//      end;
-//    end;
-//  finally
-//    LContext.Free;
-//  end;
-//end;
 
 initialization
   AppInjector := TAppInjector.Create;

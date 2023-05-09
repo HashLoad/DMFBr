@@ -31,20 +31,30 @@ interface
 
 uses
   SysUtils,
-  dmfbr.injector;
+  dmfbr.injector,
+  app.injector.events;
 
 type
-  TFreeCallback = TProc<TObject>;
-  TNotifierCallback = TFunc<TObject>;
-
   TBindAbstract<T: class, constructor> = class
   protected
-    FFreeCallback: TFreeCallback;
-    FNotifierCallback: TNotifierCallback;
+    FOnCreate: TProc<T>;
+    FOnDestroy: TProc<T>;
+    FOnParams: TConstructorCallback;
+    FAddInstance: TObject;
   public
+    destructor Destroy; override;
     procedure IncludeInjector(const AAppInjector: TAppInjector); virtual; abstract;
   end;
 
 implementation
+
+destructor TBindAbstract<T>.Destroy;
+begin
+  FOnCreate := nil;
+  FOnDestroy := nil;
+  FOnParams := nil;
+  FAddInstance := nil;
+  inherited;
+end;
 
 end.
