@@ -66,7 +66,7 @@ var
 implementation
 
 uses
-  eclbr.rtti.objects,
+  eclbr.objects,
   dmfbr.tracker,
   dmfbr.bind.provider,
   dmfbr.bind.service,

@@ -38,7 +38,7 @@ uses
   dmfbr.tracker,
   dmfbr.injector,
   dmfbr.route.abstract,
-  eclbr.rtti.objects;
+  eclbr.objects;
 
 type
   TRouteProvider = class

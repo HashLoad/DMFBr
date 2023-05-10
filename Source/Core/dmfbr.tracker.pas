@@ -40,7 +40,7 @@ uses
   dmfbr.route.param,
   dmfbr.route.key,
   dmfbr.route.abstract,
-  eclbr.rtti.objects,
+  eclbr.objects,
   dmfbr.injector;
 
 type
