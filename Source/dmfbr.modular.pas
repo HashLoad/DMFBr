@@ -76,6 +76,9 @@ function ModularApp: TModularBr;
 
 implementation
 
+uses
+  result.pair;
+
 { TModularBr }
 
 function ModularApp: TModularBr;
@@ -126,7 +129,7 @@ procedure TModularBr.Init(const AModule: TModule;
   const AInitialRoutePath: String);
 begin
   if FModuleStarted then
-    raise TModuleStartedException.CreateFmt('Module %s is already started', [AModule.ClassName]);
+    raise EModuleStartedException.CreateFmt('Module %s is already started', [AModule.ClassName]);
 
   FInitialRoutePath := AInitialRoutePath;
   FAppModule := AModule;
@@ -137,8 +140,21 @@ end;
 
 procedure TModularBr.LoadRouteModule(const APath: string;
   const AArgs: TArray<TValue>);
+var
+  LResult: TResultPair<Exception, TRouteAbstract>;
 begin
-  FRouteParse.SelectRoute(APath, AArgs);
+  LResult := FRouteParse.SelectRoute(APath, AArgs);
+//  LResult.Map(
+//    procedure (AValue: Exception)
+//    begin
+//      raise AValue;
+//    end,
+//    procedure (AValue: TRouteAbstract)
+//    begin
+//
+//    end);
+  if LResult.isFailure then
+    raise LResult.ValueFailure;
   if Assigned(FListener) then
     FListener(APath);
 end;

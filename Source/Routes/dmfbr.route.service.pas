@@ -46,7 +46,7 @@ type
   public
     destructor Destroy; override;
     procedure IncludeProvider(const AProvider: TRouteProvider);
-    procedure GetRoute(const AArgs: TRouteParam);
+    function GetRoute(const AArgs: TRouteParam): TResultPair<Exception, TRouteAbstract>;
   end;
 
 implementation
@@ -59,23 +59,17 @@ begin
   inherited;
 end;
 
-procedure TRouteService.GetRoute(const AArgs: TRouteParam);
-var
-  LResult: TResultPair<boolean, string>;
+function TRouteService.GetRoute(const AArgs: TRouteParam): TResultPair<Exception, TRouteAbstract>;
 begin
-  LResult := FProvider.GetRoute(AArgs);
-  if (LResult.isSuccess) then
-    Exit
-  else
-  if (LResult.isFailure) then
-  begin
-    if (LResult.ValueFailure = '404') then
-      raise TRouteNotFound.CreateFmt('Modular route (%s) not found!', [AArgs.Path])
-    else
-    if (LResult.ValueFailure = '401') then
-      raise TRouteGuardianAuthorized.CreateFmt('Access to route (%s) unauthorized.', [AArgs.Path])
-    else
-      raise Exception.Create(LResult.ValueFailure);
+  try
+    Result := FProvider.GetRoute(AArgs);
+    if Result.ValueSuccess = nil then
+      Result.DoFailure(ERouteNotFound.CreateFmt('Modular route (%s) not found!', [AArgs.Path]));
+  except
+    on E: ERouteGuardianAuthorized do
+      Result.DoFailure(ERouteGuardianAuthorized.CreateFmt('Access to route (%s) unauthorized.', [AArgs.Path]));
+    on E: Exception do
+      Result.DoFailure(Exception.Create(E.Message));
   end;
 end;
 

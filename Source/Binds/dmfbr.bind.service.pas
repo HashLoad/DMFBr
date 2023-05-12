@@ -61,18 +61,18 @@ end;
 
 function TBindService.GetBind<T>: T;
 var
-  LResult: TResultPair<T, string>;
+  LResult: TResultPair<string, T>;
 begin
   LResult := FProvider.GetBind<T>;
   if LResult.isSuccess then
   begin
     if LResult.ValueSuccess = nil then
-      raise TBindNotFound.CreateFmt('Class [%s] not found!', [T.ClassName]);
+      raise EBindNotFound.CreateFmt('Class [%s] not found!', [T.ClassName]);
     Result := LResult.ValueSuccess;
   end
   else
   if LResult.isFailure then
-    raise TBindError.Create(LResult.ValueFailure);
+    raise EBindError.Create(LResult.ValueFailure);
 end;
 
 procedure TBindService.IncludeBindProvider(const AProvider: TBindProvider);
