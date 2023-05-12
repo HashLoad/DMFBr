@@ -69,4 +69,4 @@ i386-win32
 *.stat
 
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
-modules/
+#modules/
