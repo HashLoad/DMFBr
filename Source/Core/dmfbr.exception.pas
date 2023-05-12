@@ -35,14 +35,14 @@ uses
   SysUtils;
 
 type
-  TRouteNotFound = class(Exception);
-  TBindError = class(Exception);
-  TRouteGuardianAuthorized = class(Exception);
-  TBindNotFound = class(Exception);
-  TModuleStartedException = class(Exception);
-  TModularError = class(Exception);
+  ERouteNotFound = class(Exception);
+  EBindError = class(Exception);
+  ERouteGuardianAuthorized = class(Exception);
+  EBindNotFound = class(Exception);
+  EModuleStartedException = class(Exception);
+  EModularError = class(Exception);
 
-function ModularError(const AMessage: string): TModularError;
+function ModularError(const AMessage: string): EModularError;
 procedure DebugPrint(const AMessage: string);
 
 implementation
@@ -56,9 +56,9 @@ begin
           end);
 end;
 
-function ModularError(const AMessage: string): TModularError;
+function ModularError(const AMessage: string): EModularError;
 begin
-  Result := TModularError.Create(AMessage);
+  Result := EModularError.Create(AMessage);
 end;
 
 end.

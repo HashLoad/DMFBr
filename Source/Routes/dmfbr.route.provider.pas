@@ -37,6 +37,7 @@ uses
   dmfbr.route.param,
   dmfbr.tracker,
   dmfbr.injector,
+  dmfbr.route,
   dmfbr.route.abstract,
   eclbr.objects;
 
@@ -49,7 +50,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure IncludeTracker(const ATracker: TTracker);
-    function GetRoute(const AArgs: TRouteParam): TResultPair<boolean, string>;
+    function GetRoute(const AArgs: TRouteParam): TResultPair<Exception, TRouteAbstract>;
   end;
 
 implementation
@@ -88,32 +89,20 @@ begin
 end;
 
 function TRouteProvider.GetRoute(
-  const AArgs: TRouteParam): TResultPair<boolean, string>;
-var
-  LRoute: TRouteAbstract;
+  const AArgs: TRouteParam): TResultPair<Exception, TRouteAbstract>;
 begin
-  try
-    LRoute := FTracker.FindRoute(AArgs);
-    if LRoute = nil then
-    begin
-      Result.Failure('404');
-      Exit;
-    end;
-    if not Assigned(LRoute.ModuleInstance) then
-    begin
-      LRoute.ModuleInstance := AppInjector.Get<TObjectFactory>
-                                          .CreateInstance(LRoute.Module);
-      // Console delphi
-      DebugPrint(Format('-- %s CREATED', [LRoute.Module.ClassName]));
-    end;
-    LRoute := _RouteMiddleware(LRoute);
-    Result.Success(True);
-  except
-    on E: TRouteGuardianAuthorized do
-      Result.Failure(E.Message);
-    on E: Exception do
-      Result.Failure(E.Message);
+  Result.DoSuccess(FTracker.FindRoute(AArgs));
+  if Result.ValueSuccess = nil then
+    Exit;
+  if not Assigned(Result.ValueSuccess.ModuleInstance) then
+  begin
+    Result.ValueSuccess.ModuleInstance := AppInjector.Get<TObjectFactory>
+                                                     .CreateInstance(Result.ValueSuccess.Module);
+    // Console delphi
+    DebugPrint(Format('-- %s CREATED', [Result.ValueSuccess.Module.ClassName]));
   end;
+  // Vai aos eventos middlewares se existir
+  _RouteMiddleware(Result.ValueSuccess);
 end;
 
 end.

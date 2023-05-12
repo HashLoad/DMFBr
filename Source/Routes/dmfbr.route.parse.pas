@@ -31,12 +31,13 @@ interface
 
 uses
   Rtti,
-  Windows,
   Classes,
   SysUtils,
   dmfbr.exception,
+  dmfbr.route.abstract,
   dmfbr.route.param,
-  dmfbr.route.service;
+  dmfbr.route.service,
+  result.pair;
 
 type
   TRouteParse = class
@@ -46,8 +47,8 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure IncludeRouteService(const AService: TRouteService);
-    procedure SelectRoute(const APath: string;
-      const AArgs: TArray<TValue> = nil);
+    function SelectRoute(const APath: string;
+      const AArgs: TArray<TValue> = nil): TResultPair<Exception, TRouteAbstract>;
   end;
 
 implementation
@@ -70,18 +71,20 @@ begin
   FService := AService;
 end;
 
-procedure TRouteParse.SelectRoute(const APath: string;
-  const AArgs: TArray<TValue>);
+function TRouteParse.SelectRoute(const APath: string;
+  const AArgs: TArray<TValue>): TResultPair<Exception, TRouteAbstract>;
 var
   LArgs: TRouteParam;
   LPath: string;
 begin
   LPath := LowerCase(APath);
   if LPath = '' then
-    raise TRouteNotFound.CreateFmt('Modular route (%s) not found!', [APath]);
-
+  begin
+    Result.DoFailure(ERouteNotFound.CreateFmt('Modular route (%s) not found!', [APath]));
+    Exit;
+  end;
   LArgs := TRouteParam.Create(LPath, AArgs);
-  FService.GetRoute(LArgs);
+  Result := FService.GetRoute(LArgs);
 end;
 
 end.

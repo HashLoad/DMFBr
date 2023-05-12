@@ -168,7 +168,7 @@ procedure TTracker._GuardianRoute(const ARoute: TRouteAbstract);
 begin
   if Assigned(ARoute.RouteGuard) then
     if not ARoute.RouteGuard() then
-      raise TRouteGuardianAuthorized.Create('401');
+      raise ERouteGuardianAuthorized.Create('');
 end;
 
 procedure TTracker.AddRoutes(const AModule: TModuleAbstract);

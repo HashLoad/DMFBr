@@ -35,6 +35,7 @@ uses
   dmfbr.module,
   dmfbr.modular,
   dmfbr.exception,
+  result.pair,
   Horse;
 
 function HorseModular(const AppModule: TModule): THorseCallback; overload;
@@ -75,12 +76,12 @@ begin
     try
       ModularApp.LoadRouteModule(Req.RawWebRequest.PathInfo);
     except
-      on E: TRouteNotFound do
+      on E: ERouteNotFound do
       begin
         Res.Send(E.Message).ContentType(CONTENT_TYPE).Status(404);
         raise EHorseCallbackInterrupted.Create;
       end;
-      on E: TRouteGuardianAuthorized do
+      on E: ERouteGuardianAuthorized do
       begin
         Res.Send(E.Message).ContentType(CONTENT_TYPE).Status(401);
         raise EHorseCallbackInterrupted.Create;
