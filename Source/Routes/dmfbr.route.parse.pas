@@ -80,7 +80,7 @@ begin
   LPath := LowerCase(APath);
   if LPath = '' then
   begin
-    Result.DoFailure(ERouteNotFound.CreateFmt('Modular route (%s) not found!', [APath]));
+    Result.Failure(ERouteNotFound.CreateFmt('', [APath]));
     Exit;
   end;
   LArgs := TRouteParam.Create(LPath, AArgs);

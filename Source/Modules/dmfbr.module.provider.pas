@@ -87,9 +87,9 @@ function TModuleProvider.Start(const AModule: TModuleAbstract;
 begin
   try
     FTracker.RunApp(AModule, AInitialRoutePath);
-    Result.DoSuccess(True);
+    Result.Success(True);
   except on E: Exception do
-    Result.DoFailure(E.Message);
+    Result.Failure(E.Message);
   end;
 end;
 
@@ -104,14 +104,14 @@ begin
     if LRoute = nil then
     begin
       LError := Format('Modular Route (%s) not found!', [APath]);
-      Result.DoFailure(LError);
+      Result.Failure(LError);
       Exit;
     end;
     // Destroy o modulo e as rotas filhas dele
     FreeAndNil(LRoute.ModuleInstance);
-    Result.DoSuccess(True);
+    Result.Success(True);
   except on E: Exception do
-    Result.DoFailure(E.Message);
+    Result.Failure(E.Message);
   end;
 end;
 

@@ -40,12 +40,13 @@ uses
   dmfbr.bind.service,
   dmfbr.injector,
   dmfbr.exception,
+  result.pair,
   app.injector.service;
 
 type
   TListener = TProc<string>;
 
-  TModularBr = class
+  TModularBr = class sealed
   private
     FInitialRoutePath: string;
     FAppModule: TModule;
@@ -61,10 +62,11 @@ type
     procedure IncludeModuleService(const AService: TModuleService);
     procedure IncludeBindService(const AService: TBindService);
     procedure IncludeRouteParser(const ARouteParse: TRouteParse);
-    procedure Init(const AModule: TModule; const AInitialRoutePath: String = '/');
+    procedure Init(const AModule: TModule;
+      const AInitialRoutePath: String = '/');
     procedure Finalize;
-    procedure LoadRouteModule(const APath: string;
-      const AArgs: TArray<TValue> = nil); overload;
+    function LoadRouteModule(const APath: string;
+      const AArgs: TArray<TValue> = nil): TResultPair<Exception, TRouteAbstract>;
     procedure DisposeRouteModule(const APath: String);
     //
     function &Get<T: class, constructor>(AName: string = ''): T;
@@ -76,14 +78,10 @@ function ModularApp: TModularBr;
 
 implementation
 
-uses
-  result.pair;
-
 { TModularBr }
-
 function ModularApp: TModularBr;
 begin
-  Result := AppInjector.Get<TModularBr>;
+  result := AppInjector.Get<TModularBr>;
 end;
 
 constructor TModularBr.Create;
@@ -106,8 +104,20 @@ begin
 end;
 
 function TModularBr.Get<T>(AName: string): T;
+var
+  LResult: TResultPair<Exception, T>;
 begin
-  Result := FBindService.GetBind<T>;
+  LResult := FBindService.GetBind<T>;
+  LResult.TryException(
+    procedure (AValue: Exception)
+    begin
+      raise AValue;
+    end,
+    procedure (AValue: T)
+    begin
+
+    end);
+  Result := LResult.ValueSuccess;
 end;
 
 procedure TModularBr.IncludeBindService(const AService: TBindService);
@@ -129,8 +139,7 @@ procedure TModularBr.Init(const AModule: TModule;
   const AInitialRoutePath: String);
 begin
   if FModuleStarted then
-    raise EModuleStartedException.CreateFmt('Module %s is already started', [AModule.ClassName]);
-
+    raise EModuleStartedException.CreateFmt('', [AModule.ClassName]);
   FInitialRoutePath := AInitialRoutePath;
   FAppModule := AModule;
   FModuleService.Start(AModule, AInitialRoutePath);
@@ -138,23 +147,10 @@ begin
   DebugPrint(Format('%s started!', [AModule.ClassName]));
 end;
 
-procedure TModularBr.LoadRouteModule(const APath: string;
-  const AArgs: TArray<TValue>);
-var
-  LResult: TResultPair<Exception, TRouteAbstract>;
+function TModularBr.LoadRouteModule(const APath: string;
+  const AArgs: TArray<TValue>): TResultPair<exception, TRouteAbstract>;
 begin
-  LResult := FRouteParse.SelectRoute(APath, AArgs);
-//  LResult.Map(
-//    procedure (AValue: Exception)
-//    begin
-//      raise AValue;
-//    end,
-//    procedure (AValue: TRouteAbstract)
-//    begin
-//
-//    end);
-  if LResult.isFailure then
-    raise LResult.ValueFailure;
+  Result := FRouteParse.SelectRoute(APath, AArgs);
   if Assigned(FListener) then
     FListener(APath);
 end;

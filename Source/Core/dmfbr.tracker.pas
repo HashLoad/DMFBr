@@ -230,7 +230,7 @@ end;
 function TTracker.GetModule: TModuleAbstract;
 begin
   if not Assigned(FAppModule) then
-    raise Exception.Create('Execute "Modular.Init(TAppModule.Create)" this is just an example');
+    raise EModuleStartedInit.Create('');
   Result := FAppModule;
 end;
 

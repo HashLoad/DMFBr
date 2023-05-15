@@ -42,7 +42,7 @@ type
   public
     destructor Destroy; override;
     procedure IncludeBindProvider(const AProvider: TBindProvider);
-    function GetBind<T: class, constructor>: T;
+    function GetBind<T: class, constructor>: TResultPair<Exception, T>;
   end;
 
 implementation
@@ -59,20 +59,16 @@ begin
   inherited;
 end;
 
-function TBindService.GetBind<T>: T;
-var
-  LResult: TResultPair<string, T>;
+function TBindService.GetBind<T>: TResultPair<Exception, T>;
 begin
-  LResult := FProvider.GetBind<T>;
-  if LResult.isSuccess then
-  begin
-    if LResult.ValueSuccess = nil then
-      raise EBindNotFound.CreateFmt('Class [%s] not found!', [T.ClassName]);
-    Result := LResult.ValueSuccess;
-  end
-  else
-  if LResult.isFailure then
-    raise EBindError.Create(LResult.ValueFailure);
+  try
+    Result := FProvider.GetBind<T>;
+    if Result.ValueSuccess = nil then
+      Result.Failure(EBindNotFound.Create(''));
+  except
+    on E: Exception do
+      Result.Failure(EBindError.Create(E.Message));
+  end;
 end;
 
 procedure TBindService.IncludeBindProvider(const AProvider: TBindProvider);

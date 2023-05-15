@@ -64,12 +64,12 @@ begin
   try
     Result := FProvider.GetRoute(AArgs);
     if Result.ValueSuccess = nil then
-      Result.DoFailure(ERouteNotFound.CreateFmt('Modular route (%s) not found!', [AArgs.Path]));
+      Result.Failure(ERouteNotFound.CreateFmt('', [AArgs.Path]));
   except
     on E: ERouteGuardianAuthorized do
-      Result.DoFailure(ERouteGuardianAuthorized.CreateFmt('Access to route (%s) unauthorized.', [AArgs.Path]));
+      Result.Failure(ERouteGuardianAuthorized.CreateFmt('', [AArgs.Path]));
     on E: Exception do
-      Result.DoFailure(Exception.Create(E.Message));
+      Result.Failure(Exception.Create(E.Message));
   end;
 end;
 

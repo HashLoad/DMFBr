@@ -35,14 +35,61 @@ uses
   SysUtils;
 
 type
-  ERouteNotFound = class(Exception);
-  EBindError = class(Exception);
-  ERouteGuardianAuthorized = class(Exception);
-  EBindNotFound = class(Exception);
-  EModuleStartedException = class(Exception);
-  EModularError = class(Exception);
+  EModularError = class abstract (Exception)
+  public
+    Status: integer;
+    constructor Create(const Msg: string); virtual;
+    constructor CreateFmt(const Msg: string; const Args: array of const); virtual;
+  end;
 
-function ModularError(const AMessage: string): EModularError;
+  ERouteNotFound = class(EModularError)
+  public
+    const cMSG_DEFAULT = 'Modular route not found.';
+    const cMSG_DEFAULT_ARGS = 'Modular route (%s) not found.';
+    constructor Create(const Msg: string); override;
+    constructor CreateFmt(const Msg: string; const Args: array of const); override;
+  end;
+
+  EBindError = class(EModularError)
+  public
+    const cMSG_DEFAULT = 'Class error occurred.';
+    const cMSG_DEFAULT_ARGS = 'Class [%s] error occurred.';
+    constructor Create(const Msg: string); override;
+    constructor CreateFmt(const Msg: string; const Args: array of const); override;
+  end;
+
+  ERouteGuardianAuthorized = class(EModularError)
+  public
+    const cMSG_DEFAULT = 'Access to route unauthorized.';
+    const cMSG_DEFAULT_ARGS = 'Access to route (%s) unauthorized.';
+    constructor Create(const Msg: string); override;
+    constructor CreateFmt(const Msg: string; const Args: array of const); override;
+  end;
+
+  EBindNotFound = class(EModularError)
+  public
+    const cMSG_DEFAULT = 'Class not found!';
+    const cMSG_DEFAULT_ARGS = 'Class [%s] not found!';
+    constructor Create(const Msg: string); override;
+    constructor CreateFmt(const Msg: string; const Args: array of const); override;
+  end;
+
+  EModuleStartedException = class(EModularError)
+  public
+    const cMSG_DEFAULT = 'Module is already started';
+    const cMSG_DEFAULT_ARGS = 'Module [%s] is already started';
+    constructor Create(const Msg: string); override;
+    constructor CreateFmt(const Msg: string; const Args: array of const); override;
+  end;
+
+  EModuleStartedInit = class(EModularError)
+  public
+    const cMSG_DEFAULT = 'Execute "Modular.Init(TAppModule.Create)" this is just an example';
+    const cMSG_DEFAULT_ARGS = 'Execute "Modular.Init(%s)" this is just an example';
+    constructor Create(const Msg: string); override;
+    constructor CreateFmt(const Msg: string; const Args: array of const); override;
+  end;
+
 procedure DebugPrint(const AMessage: string);
 
 implementation
@@ -56,13 +103,144 @@ begin
           end);
 end;
 
-function ModularError(const AMessage: string): EModularError;
+{ ERouteNotFound }
+
+constructor ERouteNotFound.Create(const Msg: string);
 begin
-  Result := EModularError.Create(AMessage);
+  if Msg = '' then
+    inherited Create(cMSG_DEFAULT)
+  else
+    inherited;
+  Status := 404;
+end;
+
+constructor ERouteNotFound.CreateFmt(const Msg: string;
+  const Args: array of const);
+begin
+  if Msg = '' then
+    inherited CreateFmt(cMSG_DEFAULT_ARGS, Args)
+  else
+    inherited;
+  Status := 404;
+end;
+
+{ EBindError }
+
+constructor EBindError.Create(const Msg: string);
+begin
+  if Msg = '' then
+    inherited Create(cMSG_DEFAULT)
+  else
+    inherited;
+  Status := 500;
+end;
+
+constructor EBindError.CreateFmt(const Msg: string; const Args: array of const);
+begin
+  if Msg = '' then
+    inherited CreateFmt(cMSG_DEFAULT_ARGS, Args)
+  else
+    inherited;
+  Status := 500;
+end;
+
+{ ERouteGuardianAuthorized }
+
+constructor ERouteGuardianAuthorized.Create(const Msg: string);
+begin
+  if Msg = '' then
+    inherited Create(cMSG_DEFAULT)
+  else
+    inherited;
+  Status := 401;
+end;
+
+constructor ERouteGuardianAuthorized.CreateFmt(const Msg: string;
+  const Args: array of const);
+begin
+  if Msg = '' then
+    inherited CreateFmt(cMSG_DEFAULT_ARGS, Args)
+  else
+    inherited;
+  Status := 401;
+end;
+
+{ EBindNotFound }
+
+constructor EBindNotFound.Create(const Msg: string);
+begin
+  if Msg = '' then
+    inherited Create(cMSG_DEFAULT)
+  else
+    inherited;
+  Status := 404;
+end;
+
+constructor EBindNotFound.CreateFmt(const Msg: string;
+  const Args: array of const);
+begin
+  if Msg = '' then
+    inherited CreateFmt(cMSG_DEFAULT_ARGS, Args)
+  else
+    inherited;
+  Status := 404;
+end;
+
+{ EModuleStartedException }
+
+constructor EModuleStartedException.Create(const Msg: string);
+begin
+  if Msg = '' then
+    inherited Create(cMSG_DEFAULT)
+  else
+    inherited;
+  Status := 500;
+end;
+
+constructor EModuleStartedException.CreateFmt(const Msg: string;
+  const Args: array of const);
+begin
+  if Msg = '' then
+    inherited CreateFmt(cMSG_DEFAULT_ARGS, Args)
+  else
+    inherited;
+  Status := 500;
+end;
+
+{ EModularError }
+
+constructor EModularError.Create(const Msg: string);
+begin
+  inherited Create(Msg);
+  Status := 0;
+end;
+
+constructor EModularError.CreateFmt(const Msg: string;
+  const Args: array of const);
+begin
+  inherited CreateFmt(Msg, Args);
+  Status := 0;
+end;
+
+{ EModuleStartedInit }
+
+constructor EModuleStartedInit.Create(const Msg: string);
+begin
+  if Msg = '' then
+    inherited Create(cMSG_DEFAULT)
+  else
+    inherited;
+  Status := 500;
+end;
+
+constructor EModuleStartedInit.CreateFmt(const Msg: string;
+  const Args: array of const);
+begin
+  if Msg = '' then
+    inherited CreateFmt(cMSG_DEFAULT_ARGS, Args)
+  else
+    inherited;
+  Status := 500;
 end;
 
 end.
-
-
-
-

@@ -41,7 +41,7 @@ type
   public
     constructor Create(const ATracker: TTracker);
     destructor Destroy; override;
-    function GetBind<T: class, constructor>: TResultPair<string, T>;
+    function GetBind<T: class, constructor>: TResultPair<Exception, T>;
 //    procedure IncludeTracker(const ATracker: TTracker);
   end;
 
@@ -64,13 +64,9 @@ end;
 //  FTracker := ATracker;
 //end;
 
-function TBindProvider.GetBind<T>: TResultPair<string, T>;
+function TBindProvider.GetBind<T>: TResultPair<Exception, T>;
 begin
-  try
-    Result.DoSuccess(FTracker.GetBind<T>);
-  except on E: Exception do
-    Result.DoFailure(E.Message);
-  end;
+  Result.Success(FTracker.GetBind<T>);
 end;
 
 end.

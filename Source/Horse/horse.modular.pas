@@ -38,7 +38,14 @@ uses
   result.pair,
   Horse;
 
-function HorseModular(const AppModule: TModule): THorseCallback; overload;
+type
+  TRouteGuardCallback = reference to function(const AUserName: string;
+                                              const APassword: string;
+                                              const AToken: string;
+                                              const APath: string): boolean;
+
+function HorseModular(const AppModule: TModule;
+                      const ARouteGuardCallback: TRouteGuardCallback = nil): THorseCallback; overload;
 function HorseModular(const ACharset: string): THorseCallback; overload;
 function Modular: TModularBr;
 
@@ -47,6 +54,7 @@ procedure Middleware(Req: THorseRequest; Res: THorseResponse; Next: TNextProc);
 implementation
 
 var
+  RouteGuardCallback: TRouteGuardCallback;
   Charset: string;
 
 function Modular: TModularBr; overload;
@@ -54,9 +62,11 @@ begin
   Result := ModularApp;
 end;
 
-function HorseModular(const AppModule: TModule): THorseCallback;
+function HorseModular(const AppModule: TModule;
+  const ARouteGuardCallback: TRouteGuardCallback): THorseCallback;
 begin
   ModularApp.Init(AppModule);
+  RouteGuardCallback := ARouteGuardCallback;
   Result := HorseModular('UTF-8');
 end;
 
@@ -69,29 +79,45 @@ end;
 procedure Middleware(Req: THorseRequest; Res: THorseResponse; Next: TProc);
 const
   CONTENT_TYPE = 'application/json; charset=UTF-8';
+var
+  LResult: TResultPair<Exception, TRouteAbstract>;
+  LUserName: string;
+  LPassword: string;
+  LToken: string;
 begin
   // Inicia rota e binds
   if (Req.MethodType in [mtGet, mtPost, mtPut, mtPatch, mtDelete]) then
   begin
-    try
-      ModularApp.LoadRouteModule(Req.RawWebRequest.PathInfo);
-    except
-      on E: ERouteNotFound do
-      begin
-        Res.Send(E.Message).ContentType(CONTENT_TYPE).Status(404);
-        raise EHorseCallbackInterrupted.Create;
-      end;
-      on E: ERouteGuardianAuthorized do
-      begin
-        Res.Send(E.Message).ContentType(CONTENT_TYPE).Status(401);
-        raise EHorseCallbackInterrupted.Create;
-      end;
-      on E: Exception do
-      begin
-        Res.Send(E.Message).ContentType(CONTENT_TYPE).Status(500);
-        raise EHorseCallbackInterrupted.Create;
-      end;
+    // Guardião de rotas
+    if Assigned(RouteGuardCallback) then
+    begin
+      LUserName := Req.Params['username'];
+      LPassword := Req.Params['password'];
+      LToken := Req.Headers['authorization'];
+      if not RouteGuardCallback(LUserName, LPassword, LToken, Req.RawWebRequest.PathInfo) then
+        raise ERouteGuardianAuthorized.Create('');
     end;
+    LResult := ModularApp.LoadRouteModule(Req.RawWebRequest.PathInfo);
+    LResult.TryException(
+      procedure (AValue: Exception)
+      begin
+        if AValue is EModularError then
+        begin
+          Res.Send(AValue.Message).ContentType(CONTENT_TYPE).Status(EModularError(AValue).Status);
+          AValue.Free;
+          raise EHorseCallbackInterrupted.Create;
+        end
+        else
+        begin
+          Res.Send(AValue.Message).ContentType(CONTENT_TYPE).Status(500);
+          AValue.Free;
+          raise EHorseCallbackInterrupted.Create;
+        end;
+      end,
+      procedure (AValue: TRouteAbstract)
+      begin
+        // A Rota se encontrada, veio até aqui, mas não precisamos de fazer nada com nela.
+      end);
   end;
   try
     Next;
