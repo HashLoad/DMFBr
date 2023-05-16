@@ -77,6 +77,7 @@ type
     procedure AddRoutes(const AModule: TModuleAbstract);
     procedure ExtractInjector<T: class>(const ATag: string);
     function GetBind<T: class, constructor>: T;
+    function GetBindInterface<I: IInterface>: I;
     function FindRoute(const AArgs: TRouteParam): TRouteAbstract;
     function GetModule: TModuleAbstract;
     function CurrentPath: string;
@@ -168,7 +169,7 @@ procedure TTracker._GuardianRoute(const ARoute: TRouteAbstract);
 begin
   if Assigned(ARoute.RouteGuard) then
     if not ARoute.RouteGuard() then
-      raise ERouteGuardianAuthorized.Create('');
+      raise ERouteGuardianAuthorized.Create;
 end;
 
 procedure TTracker.AddRoutes(const AModule: TModuleAbstract);
@@ -227,10 +228,15 @@ begin
   Result := FAppInjector.Get<T>;
 end;
 
+function TTracker.GetBindInterface<I>: I;
+begin
+  Result := FAppInjector.GetInterface<I>;
+end;
+
 function TTracker.GetModule: TModuleAbstract;
 begin
   if not Assigned(FAppModule) then
-    raise Exception.Create('Execute "Modular.Init(TAppModule.Create)" this is just an example');
+    raise EModuleStartedInit.Create;
   Result := FAppModule;
 end;
 

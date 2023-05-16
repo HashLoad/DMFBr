@@ -33,6 +33,7 @@ uses
   Rtti,
   Classes,
   SysUtils,
+  StrUtils,
   dmfbr.exception,
   dmfbr.route.abstract,
   dmfbr.route.param,
@@ -43,6 +44,8 @@ type
   TRouteParse = class
   private
     FService: TRouteService;
+    procedure _ResolveRoutes(const APath: string;
+      const ACallback: TProc<string>);
   public
     constructor Create;
     destructor Destroy; override;
@@ -76,15 +79,46 @@ function TRouteParse.SelectRoute(const APath: string;
 var
   LArgs: TRouteParam;
   LPath: string;
+  LRouteParse: string;
+  LRouteResult: TResultPair<Exception, TRouteAbstract>;
 begin
   LPath := LowerCase(APath);
   if LPath = '' then
   begin
-    Result.DoFailure(ERouteNotFound.CreateFmt('Modular route (%s) not found!', [APath]));
+    Result.Failure(ERouteNotFound.CreateFmt('', [APath]));
     Exit;
   end;
-  LArgs := TRouteParam.Create(LPath, AArgs);
-  Result := FService.GetRoute(LArgs);
+  LRouteParse := '';
+  // Resolve routes
+  _ResolveRoutes(APath,
+                 procedure (ARoute: string)
+                 begin
+                   LRouteParse := LRouteParse + '/' + ARoute;
+                   LArgs := TRouteParam.Create(LRouteParse, AArgs);
+                   // Se "LRouteResult.isFailure", quer dizer que a rota enterior
+                   // não foi encontrada, então a VAR Exception deve ser liberada
+                   // para que somente a última rota do loop, atribua valor a
+                   // "LRouteResult".
+                   if LRouteResult.isFailure then
+                     LRouteResult.DestroyFailure;
+                   LRouteResult := FService.GetRoute(LArgs);
+                 end);
+  Result := LRouteResult;
+end;
+
+procedure TRouteParse._ResolveRoutes(const APath: string;
+  const ACallback: TProc<string>);
+var
+  LRoutes: TArray<string>;
+  LRoute: string;
+begin
+  LRoutes := SplitString(APath, '/');
+  for LRoute in LRoutes do
+  begin
+    if LRoute = '' then
+      Continue;
+    ACallback(LRoute);
+  end;
 end;
 
 end.

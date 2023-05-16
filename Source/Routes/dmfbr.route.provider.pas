@@ -91,7 +91,7 @@ end;
 function TRouteProvider.GetRoute(
   const AArgs: TRouteParam): TResultPair<Exception, TRouteAbstract>;
 begin
-  Result.DoSuccess(FTracker.FindRoute(AArgs));
+  Result.Success(FTracker.FindRoute(AArgs));
   if Result.ValueSuccess = nil then
     Exit;
   if not Assigned(Result.ValueSuccess.ModuleInstance) then
