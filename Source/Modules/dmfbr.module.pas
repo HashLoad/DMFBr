@@ -34,6 +34,7 @@ uses
   TypInfo,
   SysUtils,
   Generics.Collections,
+  app.injector.events,
   dmfbr.module.abstract,
   dmfbr.route.abstract,
   dmfbr.module.service,
@@ -48,6 +49,8 @@ type
   TBinds = dmfbr.module.abstract.TBinds;
   TImports = dmfbr.module.abstract.TImports;
   TExportedBinds = dmfbr.module.abstract.TExportedBinds;
+  TConstructorParams = app.injector.events.TConstructorParams;
+  TValue = rtti.TValue;
 
   TModule = class(TModuleAbstract)
   private

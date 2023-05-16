@@ -43,6 +43,7 @@ type
     destructor Destroy; override;
     procedure IncludeBindProvider(const AProvider: TBindProvider);
     function GetBind<T: class, constructor>: TResultPair<Exception, T>;
+    function GetBindInterface<I: IInterface>: TResultPair<Exception, I>;
   end;
 
 implementation
@@ -59,12 +60,24 @@ begin
   inherited;
 end;
 
+function TBindService.GetBindInterface<I>: TResultPair<Exception, I>;
+begin
+  try
+    Result := FProvider.GetBindInterface<I>;
+    if Result.ValueSuccess = nil then
+      Result.Failure(EBindNotFound.Create);
+  except
+    on E: Exception do
+      Result.Failure(EBindError.Create(E.Message));
+  end;
+end;
+
 function TBindService.GetBind<T>: TResultPair<Exception, T>;
 begin
   try
     Result := FProvider.GetBind<T>;
     if Result.ValueSuccess = nil then
-      Result.Failure(EBindNotFound.Create(''));
+      Result.Failure(EBindNotFound.Create);
   except
     on E: Exception do
       Result.Failure(EBindError.Create(E.Message));

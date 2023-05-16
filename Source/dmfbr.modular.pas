@@ -70,6 +70,7 @@ type
     procedure DisposeRouteModule(const APath: String);
     //
     function &Get<T: class, constructor>(AName: string = ''): T;
+    function &GetInterface<I: IInterface>(AName: string = ''): I;
     //
     property Listener: TListener read FListener write SetListener;
   end;
@@ -101,6 +102,23 @@ begin
     FListener := nil;
   FModuleStarted := false;
   inherited;
+end;
+
+function TModularBr.GetInterface<I>(AName: string = ''): I;
+var
+  LResult: TResultPair<Exception, I>;
+begin
+  LResult := FBindService.GetBindInterface<I>;
+  LResult.TryException(
+    procedure (AValue: Exception)
+    begin
+      raise AValue;
+    end,
+    procedure (AValue: I)
+    begin
+
+    end);
+  Result := LResult.ValueSuccess;
 end;
 
 function TModularBr.Get<T>(AName: string): T;

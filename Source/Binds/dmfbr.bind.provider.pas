@@ -42,6 +42,7 @@ type
     constructor Create(const ATracker: TTracker);
     destructor Destroy; override;
     function GetBind<T: class, constructor>: TResultPair<Exception, T>;
+    function GetBindInterface<I: IInterface>: TResultPair<Exception, I>;
 //    procedure IncludeTracker(const ATracker: TTracker);
   end;
 
@@ -63,6 +64,11 @@ end;
 //begin
 //  FTracker := ATracker;
 //end;
+
+function TBindProvider.GetBindInterface<I>: TResultPair<Exception, I>;
+begin
+  Result.Success(FTracker.GetBindInterface<I>);
+end;
 
 function TBindProvider.GetBind<T>: TResultPair<Exception, T>;
 begin

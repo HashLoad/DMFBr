@@ -38,7 +38,8 @@ type
   EModularError = class abstract (Exception)
   public
     Status: integer;
-    constructor Create(const Msg: string); virtual;
+    constructor Create(const Msg: string); overload; virtual;
+    constructor Create; overload;
     constructor CreateFmt(const Msg: string; const Args: array of const); virtual;
   end;
 
@@ -46,7 +47,8 @@ type
   public
     const cMSG_DEFAULT = 'Modular route not found.';
     const cMSG_DEFAULT_ARGS = 'Modular route (%s) not found.';
-    constructor Create(const Msg: string); override;
+    constructor Create(const Msg: string); overload; override;
+    constructor Create; overload;
     constructor CreateFmt(const Msg: string; const Args: array of const); override;
   end;
 
@@ -54,7 +56,8 @@ type
   public
     const cMSG_DEFAULT = 'Class error occurred.';
     const cMSG_DEFAULT_ARGS = 'Class [%s] error occurred.';
-    constructor Create(const Msg: string); override;
+    constructor Create(const Msg: string); overload; override;
+    constructor Create; overload;
     constructor CreateFmt(const Msg: string; const Args: array of const); override;
   end;
 
@@ -62,7 +65,8 @@ type
   public
     const cMSG_DEFAULT = 'Access to route unauthorized.';
     const cMSG_DEFAULT_ARGS = 'Access to route (%s) unauthorized.';
-    constructor Create(const Msg: string); override;
+    constructor Create(const Msg: string); overload; override;
+    constructor Create; overload;
     constructor CreateFmt(const Msg: string; const Args: array of const); override;
   end;
 
@@ -70,7 +74,8 @@ type
   public
     const cMSG_DEFAULT = 'Class not found!';
     const cMSG_DEFAULT_ARGS = 'Class [%s] not found!';
-    constructor Create(const Msg: string); override;
+    constructor Create(const Msg: string); overload; override;
+    constructor Create; overload;
     constructor CreateFmt(const Msg: string; const Args: array of const); override;
   end;
 
@@ -78,7 +83,8 @@ type
   public
     const cMSG_DEFAULT = 'Module is already started';
     const cMSG_DEFAULT_ARGS = 'Module [%s] is already started';
-    constructor Create(const Msg: string); override;
+    constructor Create(const Msg: string); overload; override;
+    constructor Create; overload;
     constructor CreateFmt(const Msg: string; const Args: array of const); override;
   end;
 
@@ -86,7 +92,8 @@ type
   public
     const cMSG_DEFAULT = 'Execute "Modular.Init(TAppModule.Create)" this is just an example';
     const cMSG_DEFAULT_ARGS = 'Execute "Modular.Init(%s)" this is just an example';
-    constructor Create(const Msg: string); override;
+    constructor Create(const Msg: string); overload; override;
+    constructor Create; overload;
     constructor CreateFmt(const Msg: string; const Args: array of const); override;
   end;
 
@@ -114,6 +121,11 @@ begin
   Status := 404;
 end;
 
+constructor ERouteNotFound.Create;
+begin
+  Create('');
+end;
+
 constructor ERouteNotFound.CreateFmt(const Msg: string;
   const Args: array of const);
 begin
@@ -135,6 +147,11 @@ begin
   Status := 500;
 end;
 
+constructor EBindError.Create;
+begin
+  Create('');
+end;
+
 constructor EBindError.CreateFmt(const Msg: string; const Args: array of const);
 begin
   if Msg = '' then
@@ -153,6 +170,11 @@ begin
   else
     inherited;
   Status := 401;
+end;
+
+constructor ERouteGuardianAuthorized.Create;
+begin
+  Create('');
 end;
 
 constructor ERouteGuardianAuthorized.CreateFmt(const Msg: string;
@@ -176,6 +198,11 @@ begin
   Status := 404;
 end;
 
+constructor EBindNotFound.Create;
+begin
+  Create('');
+end;
+
 constructor EBindNotFound.CreateFmt(const Msg: string;
   const Args: array of const);
 begin
@@ -197,6 +224,11 @@ begin
   Status := 500;
 end;
 
+constructor EModuleStartedException.Create;
+begin
+  Create('');
+end;
+
 constructor EModuleStartedException.CreateFmt(const Msg: string;
   const Args: array of const);
 begin
@@ -215,6 +247,11 @@ begin
   Status := 0;
 end;
 
+constructor EModularError.Create;
+begin
+  Create('');
+end;
+
 constructor EModularError.CreateFmt(const Msg: string;
   const Args: array of const);
 begin
@@ -231,6 +268,11 @@ begin
   else
     inherited;
   Status := 500;
+end;
+
+constructor EModuleStartedInit.Create;
+begin
+  Create('');
 end;
 
 constructor EModuleStartedInit.CreateFmt(const Msg: string;

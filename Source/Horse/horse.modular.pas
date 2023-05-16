@@ -95,7 +95,7 @@ begin
       LPassword := Req.Params['password'];
       LToken := Req.Headers['authorization'];
       if not RouteGuardCallback(LUserName, LPassword, LToken, Req.RawWebRequest.PathInfo) then
-        raise ERouteGuardianAuthorized.Create('');
+        raise ERouteGuardianAuthorized.Create;
     end;
     LResult := ModularApp.LoadRouteModule(Req.RawWebRequest.PathInfo);
     LResult.TryException(
@@ -116,14 +116,14 @@ begin
       end,
       procedure (AValue: TRouteAbstract)
       begin
-        // A Rota se encontrada, veio até aqui, mas não precisamos de fazer nada com nela.
+        // A Rota se encontrada, veio até aqui,
+        // mas não precisamos de fazer nada com nela.
       end);
   end;
   try
     Next;
   finally
     Res.RawWebResponse.ContentType := CONTENT_TYPE;
-    // Libera rotas e binds
     ModularApp.DisposeRouteModule(Req.RawWebRequest.PathInfo);
   end;
 end;
