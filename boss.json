@@ -1,13 +1,13 @@
 {
 	"name": "DMFBr",
 	"description": "Desenvolvimento Modular Framework for Delphi",
-	"version": "1.0.1",
-	"homepage": "https://www.isaquepinheiro.com.br",
-	"mainsrc": "./Source",
+	"version": "1.0.2",
+	"homepage": "www.isaquepinheiro.com.br",
+	"mainsrc": "Source/",
 	"projects": [],
 	"dependencies": {
-		"github.com/HashLoad/ECLBr": "^1.0.1",
-		"github.com/HashLoad/InjectorBr": "^0.1.6",
-		"github.com/HashLoad/ResultPairBr": "^0.1.6"
+		"github.com/HashLoad/ECLBr": "^1.0.2",
+		"github.com/HashLoad/InjectorBr": "^0.1.7",
+		"github.com/HashLoad/ResultPairBr": "^0.1.7"
 	}
 }
