@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -30,6 +30,7 @@ unit dmfbr.route.provider;
 interface
 
 uses
+  Rtti,
   SysUtils,
   result.pair,
   dmfbr.exception,
@@ -76,15 +77,22 @@ end;
 function TRouteProvider._RouteMiddleware(
   const ARoute: TRouteAbstract): TRouteAbstract;
 var
-  LMiddleware: TRouteMiddleware;
+  LMiddleware: TClass;
   LFor: integer;
+  LAfter: TRttiMethod;
+  LContext: TRttiContext;
+  LParam: TValue;
 begin
   Result := ARoute;
   for LFor := 0 to High(ARoute.Middlewares) do
   begin
     LMiddleware := ARoute.Middlewares[LFor];
-    if Assigned(LMiddleware.AfterCallback) then
-      LMiddleware.AfterCallback(ARoute);
+    LAfter := LContext.GetType(LMiddleware).GetMethod('After');
+    if Assigned(LAfter) then
+    begin
+      LParam := TValue.From(ARoute);
+      LAfter.Invoke(LMiddleware, [LParam]);
+    end;
   end;
 end;
 
@@ -106,4 +114,3 @@ begin
 end;
 
 end.
-

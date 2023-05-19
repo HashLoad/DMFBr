@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -32,6 +32,7 @@ interface
 uses
   Generics.Collections,
   dmfbr.route,
+  dmfbr.route.handler,
   dmfbr.bind;
 
 type
@@ -39,6 +40,7 @@ type
   TBinds = array of TBind<TObject>;
   TImports = array of TClass;
   TExportedBinds = array of TBind<TObject>;
+  TRouteHandlers = array of TClass;
 
   TModuleAbstract = class
   public
@@ -47,6 +49,7 @@ type
     function Binds: TBinds; virtual; abstract;
     function Imports: TImports; virtual; abstract;
     function ExportedBinds: TExportedBinds; virtual; abstract;
+    function RouteHandlers: TRouteHandlers; virtual; abstract;
   end;
 
 implementation

@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -76,6 +76,7 @@ uses
   dmfbr.route.provider,
   dmfbr.route.parse,
   dmfbr.route.service,
+  dmfbr.route.manager,
   dmfbr.modular;
 
 { TCoreInjector }
@@ -175,6 +176,7 @@ end;
 procedure TCoreInjector._TrackeInjector;
 begin
   Self.SingletonLazy<TTracker>;
+  Self.SingletonLazy<TRouteManager>;
 end;
 
 procedure TCoreInjector._ObjectFactoryInjector;

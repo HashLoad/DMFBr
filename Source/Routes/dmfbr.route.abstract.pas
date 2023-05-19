@@ -1,23 +1,18 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
-
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
                    Copyright (c) 2023, Isaque Pinheiro
                           All rights reserved.
-
                     GNU Lesser General Public License
                       Versão 3, 29 de junho de 2007
-
        Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
        A todos é permitido copiar e distribuir cópias deste documento de
        licença, mas mudá-lo não é permitido.
-
        Esta versão da GNU Lesser General Public License incorpora
        os termos e condições da versão 3 da GNU General Public License
        Licença, complementado pelas permissões adicionais listadas no
        arquivo LICENSE na pasta principal.
 }
-
 {
   @abstract(DMFBr Framework)
   @created(01 Mai 2023)
@@ -35,19 +30,15 @@ uses
 
 type
   TRouteAbstract = class;
-  TRouteGuardCallback = TFunc<Boolean>;
-  TBeforeCallback = TFunc<TRouteAbstract, TRouteAbstract>;
-  TAfterCallback = TProc<TRouteAbstract>;
 
-  TRouteMiddleware = record
+  TRouteMiddleware = class
   public
-    BeforeCallback: TBeforeCallback;
-    AfterCallback: TAfterCallback;
-    constructor Create(const ABeforeCallback: TBeforeCallback;
-                       const AAfterCallback: TAfterCallback);
+    class function Before(ARoute: TRouteAbstract): TRouteAbstract; virtual;
+    class function Call: boolean; virtual;
+    class procedure After(ARoute: TRouteAbstract); virtual;
   end;
 
-  TMiddlewares = array of TRouteMiddleware;
+  TMiddlewares = array of TClass;
 
   TRouteAbstract = class
   private
@@ -56,29 +47,22 @@ type
     FParent: string;
     FModule: TClass;
     FModuleInstance: TObject;
-    FRouteGurdCallback: TRouteGuardCallback;
     FRouteMiddlewares: TMiddlewares;
     procedure _SetSchema(const Value: string);
     procedure _SetPath(const Value: string);
     procedure _SetParent(const Value: string);
     procedure _SetModuleInstance(const Value: TObject);
   public
-    constructor Create(const APath: string;
-      const ASchema: string;
-      const AModule: TClass;
-      const ARouteGuardCallback: TRouteGuardCallback;
-      const AMiddlewares: TMiddlewares); virtual;
+    constructor Create(const APath: string; const ASchema: string;
+      const AModule: TClass; AMiddlewares: TMiddlewares); virtual;
     destructor Destroy; override;
-    class function AddModule(const APath: string;
-      const AModule: TClass;
-      const ARouteGuardCallback: TRouteGuardCallback;
+    class function AddModule(const APath: string; const AModule: TClass;
       const AMiddlewares: TMiddlewares): TRouteAbstract; virtual; abstract;
     // Propertys
     property Schema: string read FSchema write _SetSchema;
     property Path: string read FPath write _SetPath;
     property Parent: string read FParent write _SetParent;
     property Module: TClass read FModule;
-    property RouteGuard: TRouteGuardCallback read FRouteGurdCallback;
     property Middlewares: TMiddlewares read FRouteMiddlewares;
     property ModuleInstance: TObject read FModuleInstance write _SetModuleInstance;
   end;
@@ -86,18 +70,13 @@ type
 implementation
 
 { TRoute }
-
-constructor TRouteAbstract.Create(const APath: string;
-  const ASchema: string;
-  const AModule: TClass;
-  const ARouteGuardCallback: TRouteGuardCallback;
-  const AMiddlewares: TMiddlewares);
+constructor TRouteAbstract.Create(const APath: string; const ASchema: string;
+  const AModule: TClass; AMiddlewares: TMiddlewares);
 begin
   FPath := APath;
   FSchema := ASchema;
   FParent := ASchema;
   FModule := AModule;
-  FRouteGurdCallback := ARouteGuardCallback;
   FRouteMiddlewares := AMiddlewares;
 end;
 
@@ -128,13 +107,21 @@ begin
   FSchema := Value;
 end;
 
-{ TRouteMiddleware<T> }
+{ TRouteMiddleware }
 
-constructor TRouteMiddleware.Create(const ABeforeCallback: TBeforeCallback;
-  const AAfterCallback: TAfterCallback);
+class procedure TRouteMiddleware.After(ARoute: TRouteAbstract);
 begin
-  BeforeCallback := ABeforeCallback;
-  AfterCallback := AAfterCallback;
+
+end;
+
+class function TRouteMiddleware.Before(ARoute: TRouteAbstract): TRouteAbstract;
+begin
+  Result := ARoute;
+end;
+
+class function TRouteMiddleware.Call: boolean;
+begin
+  Result := True;
 end;
 
 end.

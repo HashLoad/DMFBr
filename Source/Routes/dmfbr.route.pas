@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -40,7 +40,6 @@ type
   public
     class function AddModule(const APath: string;
       const AModule: TClass;
-      const ARouteGuardCallback: TRouteGuardCallback;
       const AMiddlewares: TMiddlewares): TRouteAbstract; override;
   end;
 
@@ -48,7 +47,6 @@ type
   public
     class function AddModule(const APath: string;
       const AModule: TClass;
-      const ARouteGuardCallback: TRouteGuardCallback;
       const AMiddlewares: TMiddlewares): TRouteAbstract; override;
   end;
 
@@ -58,14 +56,12 @@ implementation
 
 class function TRouteModule.AddModule(const APath: string;
   const AModule: TClass;
-  const ARouteGuardCallback: TRouteGuardCallback;
   const AMiddlewares: TMiddlewares): TRouteAbstract;
 begin
   inherited;
   Result := TRouteModule.Create(APath,
                                 AModule.ClassName,
                                 AModule,
-                                ARouteGuardCallback,
                                 AMiddlewares);
 end;
 
@@ -73,15 +69,12 @@ end;
 
 class function TRouteChild.AddModule(const APath: string;
   const AModule: TClass;
-  const ARouteGuardCallback: TRouteGuardCallback;
   const AMiddlewares: TMiddlewares): TRouteAbstract;
 begin
   inherited;
-  Result := TRouteChild.Create(APath,
-                               '',
-                               AModule,
-                               ARouteGuardCallback,
-                               AMiddlewares);
+  Result := TRouteChild.Create(APath, '', AModule, AMiddlewares);
 end;
 
 end.
+
+
