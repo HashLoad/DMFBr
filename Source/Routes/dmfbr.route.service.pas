@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -67,7 +67,7 @@ begin
       Result.Failure(ERouteNotFound.CreateFmt('', [AArgs.Path]));
   except
     on E: ERouteGuardianAuthorized do
-      Result.Failure(ERouteGuardianAuthorized.CreateFmt('', [AArgs.Path]));
+      Result.Failure(ERouteGuardianAuthorized.Create);
     on E: Exception do
       Result.Failure(Exception.Create(E.Message));
   end;

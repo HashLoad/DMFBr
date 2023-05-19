@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -30,6 +30,7 @@ unit dmfbr.tracker;
 interface
 
 uses
+  Rtti,
   SysUtils,
   Types,
   RegularExpressions,
@@ -40,6 +41,7 @@ uses
   dmfbr.route.param,
   dmfbr.route.key,
   dmfbr.route.abstract,
+  dmfbr.route.manager,
   eclbr.objects,
   dmfbr.injector;
 
@@ -51,9 +53,9 @@ type
     FAppInjector: TAppInjector;
     FAppModule: TModuleAbstract;
     FRoutes: TTrackerRoute;
-    FEndPoints: TList<string>;
     FAppIntialPath: string;
     FCurrentPath: String;
+    FRouteManager: TRouteManager;
     procedure _AddModuleBind(const AModule: TModuleAbstract;
       const AInjector: TAppInjector);
     procedure _AddExportedModuleBind(const AModule: TModuleAbstract;
@@ -63,11 +65,11 @@ type
     procedure _AddRoute(const ARoute: TRouteAbstract; const AParent: String);
     procedure _ResolverImports(const AModule: TClass;
       const AInjector: TAppInjector);
-    function _MatchEndPoint(const ARoute: string): string;
     function _CreateInjector: TAppInjector;
     function _CreateModule(const AModule: TClass): TModuleAbstract;
     procedure _GuardianRoute(const ARoute: TRouteAbstract);
     function _RouteMiddlewares(const ARoute: TRouteAbstract): TRouteAbstract;
+    procedure _RemoveEndPoint(const APath: string);
   public
     constructor Create;
     destructor Destroy; override;
@@ -90,14 +92,13 @@ implementation
 constructor TTracker.Create;
 begin
   FRoutes := TTrackerRoute.Create([doOwnsValues]);
-  FEndPoints := TList<string>.Create;
   FAppInjector := AppInjector;
+  FRouteManager := FAppInjector.Get<TRouteManager>;
 end;
 
 destructor TTracker.Destroy;
 begin
   FRoutes.Free;
-  FEndPoints.Free;
   FAppModule := nil;
   FAppInjector := nil;
   inherited;
@@ -146,12 +147,12 @@ procedure TTracker._AddRoute(const ARoute: TRouteAbstract; const AParent: String
 var
   LPath: String;
 begin
-  LPath := LowerCase(ARoute.Path);
+  LPath := FRouteManager.RemoveSuffix(LowerCase(ARoute.Path));
   // Lista de Rotas
   FRoutes.AddOrSetValue(TRouteKey.Create(LPath, AParent), ARoute);
   // Lista de EndPoints
-  FEndPoints.Add(LPath);
-  FEndPoints.Sort;
+  FRouteManager.EndPoints.Add(LPath);
+  FRouteManager.EndPoints.Sort;
 end;
 
 function TTracker._CreateInjector: TAppInjector;
@@ -162,14 +163,25 @@ end;
 function TTracker._CreateModule(const AModule: TClass): TModuleAbstract;
 begin
   Result := FAppInjector.Get<TObjectFactory>
-                                 .CreateInstance(AModule) as TModuleAbstract;
+                        .CreateInstance(AModule) as TModuleAbstract;
 end;
 
 procedure TTracker._GuardianRoute(const ARoute: TRouteAbstract);
+var
+  LMiddleware: TClass;
+  LCall: TRttiMethod;
+  LFor: integer;
+  LContext: TRttiContext;
 begin
-  if Assigned(ARoute.RouteGuard) then
-    if not ARoute.RouteGuard() then
+  for LFor := 0 to High(ARoute.Middlewares) do
+  begin
+    LMiddleware := ARoute.Middlewares[LFor];
+    LCall := LContext.GetType(LMiddleware).GetMethod('Call');
+    if not Assigned(LCall) then
+      Continue;
+    if not LCall.Invoke(LMiddleware, []).AsType<Boolean> then
       raise ERouteGuardianAuthorized.Create;
+  end;
 end;
 
 procedure TTracker.AddRoutes(const AModule: TModuleAbstract);
@@ -208,18 +220,17 @@ var
   LRoute: TRouteAbstract;
 begin
   Result := nil;
-  LEndPoint := _MatchEndpoint(AArgs.Path);
+  LEndPoint := FRouteManager.FindEndpoint(AArgs.Path);
   if LEndPoint = '' then
     Exit;
   for LKey in FRoutes.Keys do
   begin
-    if LKey.Path = LEndPoint then
-    begin
-      LRoute := FRoutes.Items[LKey];
-      _GuardianRoute(LRoute);
-      Result := _RouteMiddlewares(LRoute);
-      Exit;
-    end;
+    if LKey.Path <> LEndPoint then
+      Continue;
+    LRoute := FRoutes.Items[LKey];
+    _GuardianRoute(LRoute);
+    Result := _RouteMiddlewares(LRoute);
+    Break;
   end;
 end;
 
@@ -240,18 +251,26 @@ begin
   Result := FAppModule;
 end;
 
+procedure TTracker._RemoveEndPoint(const APath: string);
+begin
+  FRouteManager.EndPoints.Remove(LowerCase(APath));
+  FRouteManager.EndPoints.Sort;
+  DebugPrint(Format('-- "%s" ENDIPOINT REMOVED', [APath]));
+end;
+
 procedure TTracker.RemoveRoutes(const AModuleName: string);
 var
   LKey: TRouteKey;
 begin
   for LKey in FRoutes.Keys do
   begin
-    if LKey.Schema = AModuleName then
-    begin
-      FEndPoints.Remove(LowerCase(LKey.Path));
-      FEndPoints.Sort;
-      FRoutes.Remove(LKey);
-    end;
+    if LKey.Schema <> AModuleName then
+      Continue;
+    // Remove os endpoints desse módulo da lista.
+    _RemoveEndPoint(LKey.Path);
+    // Remove todas as rotas/sub-rotas do módulo que está sendo destuído.
+    FRoutes.Remove(LKey);
+    DebugPrint(Format('-- "%s" ROUTE REMOVED', [LKey.Path]));
   end;
 end;
 
@@ -263,58 +282,40 @@ begin
   FAppModule := AModule;
 end;
 
-function TTracker._MatchEndPoint(const ARoute: string): string;
-var
-  LEndpoint: string;
-  LRegEx, LEndPointRegEx: TRegEx;
-  LURI: String;
-begin
-  Result := '';
-  LURI := LowerCase(ARoute);
-  // Varre a lista de endpoints em busca de um match
-  for LEndpoint in FEndpoints do
-  begin
-    // Substitui todos os parâmetros da URI por um curinga
-    LRegEx := TRegEx.Create(':[^/]+');
-    LEndPointRegEx := TRegEx.Create('^' + LRegEx.Replace(LEndpoint, '[^/]+') + '$');
-    if LEndPointRegEx.IsMatch(LURI) then
-    begin
-      Result := LEndpoint;
-      Exit;
-    end;
-  end;
-end;
-
 procedure TTracker._ResolverImports(const AModule: TClass;
   const AInjector: TAppInjector);
 var
   LInstance: TModuleAbstract;
 begin
   LInstance := _CreateModule(AModule);
-  if LInstance <> nil then
-  begin
-    try
-      _AddModuleImportsBind(LInstance, AInjector);
-    finally
-      LInstance.Free;
-    end;
+  if LInstance = nil then
+    Exit;
+  try
+    _AddModuleImportsBind(LInstance, AInjector);
+  finally
+    LInstance.Free;
   end;
 end;
 
 function TTracker._RouteMiddlewares(
   const ARoute: TRouteAbstract): TRouteAbstract;
 var
-  LMiddleware: TRouteMiddleware;
+  LMiddleware: TClass;
+  LBefore: TRttiMethod;
   LFor: integer;
+  LContext: TRttiContext;
+  LParam: TValue;
 begin
   Result := ARoute;
   for LFor := 0 to High(ARoute.Middlewares) do
   begin
     LMiddleware := ARoute.Middlewares[LFor];
-    if Assigned(LMiddleware.BeforeCallback) then
-      Result := LMiddleware.BeforeCallback(ARoute);
+    LBefore := LContext.GetType(LMiddleware).GetMethod('Before');
+    if not Assigned(LBefore) then
+      Continue;
+    LParam := TValue.From(ARoute);
+    Result := LBefore.Invoke(LMiddleware, [LParam]).AsType<TRouteAbstract>;
   end;
 end;
 
 end.
-

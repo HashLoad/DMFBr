@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -34,24 +34,29 @@ uses
   Classes,
   SysUtils,
   StrUtils,
+  dmfbr.injector,
   dmfbr.exception,
   dmfbr.route.abstract,
   dmfbr.route.param,
   dmfbr.route.service,
+  dmfbr.route.manager,
   result.pair;
 
 type
+  TReturnPair = TResultPair<Exception, TRouteAbstract>;
+
   TRouteParse = class
   private
     FService: TRouteService;
+    FRouteManager: TRouteManager;
     procedure _ResolveRoutes(const APath: string;
-      const ACallback: TProc<string>);
+      const ACallback: TFunc<string, TReturnPair>);
   public
     constructor Create;
     destructor Destroy; override;
     procedure IncludeRouteService(const AService: TRouteService);
     function SelectRoute(const APath: string;
-      const AArgs: TArray<TValue> = nil): TResultPair<Exception, TRouteAbstract>;
+      const AArgs: TArray<TValue> = nil): TReturnPair;
   end;
 
 implementation
@@ -60,7 +65,7 @@ implementation
 
 constructor TRouteParse.Create;
 begin
-
+  FRouteManager := AppInjector.Get<TRouteManager>;
 end;
 
 destructor TRouteParse.Destroy;
@@ -75,12 +80,12 @@ begin
 end;
 
 function TRouteParse.SelectRoute(const APath: string;
-  const AArgs: TArray<TValue>): TResultPair<Exception, TRouteAbstract>;
+  const AArgs: TArray<TValue>): TReturnPair;
 var
   LArgs: TRouteParam;
   LPath: string;
-  LRouteParse: string;
-  LRouteResult: TResultPair<Exception, TRouteAbstract>;
+  LRouteParts: string;
+  LRouteResult: TReturnPair;
 begin
   LPath := LowerCase(APath);
   if LPath = '' then
@@ -88,36 +93,48 @@ begin
     Result.Failure(ERouteNotFound.CreateFmt('', [APath]));
     Exit;
   end;
-  LRouteParse := '';
-  // Resolve routes
-  _ResolveRoutes(APath,
-                 procedure (ARoute: string)
-                 begin
-                   LRouteParse := LRouteParse + '/' + ARoute;
-                   LArgs := TRouteParam.Create(LRouteParse, AArgs);
-                   // Se "LRouteResult.isFailure", quer dizer que a rota enterior
-                   // não foi encontrada, então a VAR Exception deve ser liberada
-                   // para que somente a última rota do loop, atribua valor a
-                   // "LRouteResult".
-                   if LRouteResult.isFailure then
-                     LRouteResult.DestroyFailure;
-                   LRouteResult := FService.GetRoute(LArgs);
-                 end);
+  if FRouteManager.FindEndPoint(LPath) <> '' then
+  begin
+    LArgs := TRouteParam.Create(LPath, AArgs);
+    LRouteResult := FService.GetRoute(LArgs);
+  end
+  else
+  begin
+    LRouteParts := '';
+    // Resolve routes
+    _ResolveRoutes(APath,
+                   function (ARoute: string): TReturnPair
+                   begin
+                     LRouteParts := LRouteParts + '/' + ARoute;
+                     LArgs := TRouteParam.Create(LRouteParts, AArgs);
+                     // Se "LRouteResult.isFailure", quer dizer que a rota enterior
+                     // não foi encontrada, então a VAR Exception deve ser liberada
+                     // para que somente a última rota do loop, atribua valor a
+                     // "LRouteResult".
+                     if LRouteResult.isFailure then
+                       LRouteResult.DestroyFailure;
+                     LRouteResult := FService.GetRoute(LArgs);
+                     Result := LRouteResult;
+                   end);
+  end;
   Result := LRouteResult;
 end;
 
 procedure TRouteParse._ResolveRoutes(const APath: string;
-  const ACallback: TProc<string>);
+  const ACallback: TFunc<string, TReturnPair>);
 var
   LRoutes: TArray<string>;
   LRoute: string;
+  LResult: TReturnPair;
 begin
   LRoutes := SplitString(APath, '/');
   for LRoute in LRoutes do
   begin
-    if LRoute = '' then
+    if (LRoute = '') or (LRoute = '/') then
       Continue;
-    ACallback(LRoute);
+    if LRoute = LRoutes[High(LRoutes)] then
+      Break;
+    LResult := ACallback(LRoute);
   end;
 end;
 

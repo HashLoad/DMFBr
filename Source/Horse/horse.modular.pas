@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -31,6 +31,7 @@ interface
 
 uses
   SysUtils,
+  StrUtils,
   Web.HTTPApp,
   dmfbr.module,
   dmfbr.modular,
@@ -39,13 +40,13 @@ uses
   Horse;
 
 type
-  TRouteGuardCallback = reference to function(const AUserName: string;
+  TRouteMiddleware = reference to function(const AUserName: string;
                                               const APassword: string;
                                               const AToken: string;
                                               const APath: string): boolean;
 
 function HorseModular(const AppModule: TModule;
-                      const ARouteGuardCallback: TRouteGuardCallback = nil): THorseCallback; overload;
+                      const AGuardMiddleware: TRouteMiddleware = nil): THorseCallback; overload;
 function HorseModular(const ACharset: string): THorseCallback; overload;
 function Modular: TModularBr;
 
@@ -54,7 +55,7 @@ procedure Middleware(Req: THorseRequest; Res: THorseResponse; Next: TNextProc);
 implementation
 
 var
-  RouteGuardCallback: TRouteGuardCallback;
+  GuardMiddleware: TRouteMiddleware;
   Charset: string;
 
 function Modular: TModularBr; overload;
@@ -63,10 +64,10 @@ begin
 end;
 
 function HorseModular(const AppModule: TModule;
-  const ARouteGuardCallback: TRouteGuardCallback): THorseCallback;
+  const AGuardMiddleware: TRouteMiddleware): THorseCallback;
 begin
   ModularApp.Init(AppModule);
-  RouteGuardCallback := ARouteGuardCallback;
+  GuardMiddleware := AGuardMiddleware;
   Result := HorseModular('UTF-8');
 end;
 
@@ -85,16 +86,20 @@ var
   LPassword: string;
   LToken: string;
 begin
+  // Tratamento para ignorar rodas de documentação nesse middleware.
+  if (Pos(LowerCase('swagger'), LowerCase(Req.RawWebRequest.PathInfo)) > 0) or
+     (Pos(LowerCase('favicon.ico'), LowerCase(Req.RawWebRequest.PathInfo)) > 0) then
+    Exit;
   // Inicia rota e binds
   if (Req.MethodType in [mtGet, mtPost, mtPut, mtPatch, mtDelete]) then
   begin
     // Guardião de rotas
-    if Assigned(RouteGuardCallback) then
+    if Assigned(GuardMiddleware) then
     begin
       LUserName := Req.Params['username'];
       LPassword := Req.Params['password'];
       LToken := Req.Headers['authorization'];
-      if not RouteGuardCallback(LUserName, LPassword, LToken, Req.RawWebRequest.PathInfo) then
+      if not GuardMiddleware(LUserName, LPassword, LToken, Req.RawWebRequest.PathInfo) then
         raise ERouteGuardianAuthorized.Create;
     end;
     LResult := ModularApp.LoadRouteModule(Req.RawWebRequest.PathInfo);
@@ -124,7 +129,8 @@ begin
     Next;
   finally
     Res.RawWebResponse.ContentType := CONTENT_TYPE;
-    ModularApp.DisposeRouteModule(Req.RawWebRequest.PathInfo);
+    // Destroy modulos e sub-modulos usados na rotas.
+    Modular.DisposeRouteModule(Req.RawWebRequest.PathInfo);
   end;
 end;
 

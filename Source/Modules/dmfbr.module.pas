@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -38,7 +38,9 @@ uses
   dmfbr.module.abstract,
   dmfbr.route.abstract,
   dmfbr.module.service,
+  dmfbr.route.manager,
   dmfbr.route,
+  dmfbr.route.handler,
   dmfbr.bind;
 
 type
@@ -50,15 +52,19 @@ type
   TImports = dmfbr.module.abstract.TImports;
   TExportedBinds = dmfbr.module.abstract.TExportedBinds;
   TConstructorParams = app.injector.events.TConstructorParams;
-  TValue = rtti.TValue;
+  TRouteHandlers = dmfbr.module.abstract.TRouteHandlers;
+  TValue = Rtti.TValue;
+  TRouteManager = dmfbr.route.manager.TRouteManager;
 
   TModule = class(TModuleAbstract)
   private
+    FRouteHandlers: TObjectList<TRouteHandler>;
     FService: TModuleService;
     procedure _DestroyRoutes;
     procedure _DestroyInjector;
     procedure _AddRoutes;
     procedure _BindModule;
+    procedure _RouteHandlers;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -66,6 +72,7 @@ type
     function Binds: TBinds; override;
     function Imports: TImports; override;
     function ExportedBinds: TExportedBinds; override;
+    function RouteHandlers: TRouteHandlers; override;
   end;
 
   // Só para facilitar a sintaxe nos módulos
@@ -73,34 +80,28 @@ type
   end;
 
 // RouteModule
-function RouteModule(const APath: string; const AModule: TClass;
-  const ARouteGuardCallback: TRouteGuardCallback = nil;
-  const AMiddlewares: TMiddlewares = []): TRouteModule; overload;
+function RouteModule(const APath: string;
+  const AModule: TClass): TRouteModule; overload;
 
 function RouteModule(const APath: string; const AModule: TClass;
   const AMiddlewares: TMiddlewares): TRouteModule; overload;
 
 // RouteChild
 function RouteChild(const APath: string; const AModule: TClass;
-  const ARouteGuardCallback: TRouteGuardCallback = nil;
   const AMiddlewares: TMiddlewares = []): TRouteChild;
 
 implementation
 
 uses
+  eclbr.objects,
   dmfbr.injector,
   dmfbr.exception;
 
-function RouteModule(const APath: string; const AModule: TClass;
-  const ARouteGuardCallback: TRouteGuardCallback;
-  const AMiddlewares: TMiddlewares): TRouteModule;
+function RouteModule(const APath: string; const AModule: TClass): TRouteModule;
 begin
   Result := nil;
   if Assigned(AModule) then
-    Result := TRouteModule.AddModule(APath,
-                                     AModule,
-                                     ARouteGuardCallback,
-                                     AMiddlewares) as TRouteModule;
+    Result := TRouteModule.AddModule(APath, AModule, nil{, []}) as TRouteModule;
 end;
 
 function RouteModule(const APath: string; const AModule: TClass;
@@ -110,17 +111,14 @@ begin
   if Assigned(AModule) then
     Result := TRouteModule.AddModule(APath,
                                      AModule,
-                                     nil,
                                      AMiddlewares) as TRouteModule;
 end;
 
 function RouteChild(const APath: string; const AModule: TClass;
-  const ARouteGuardCallback: TRouteGuardCallback;
   const AMiddlewares: TMiddlewares): TRouteChild;
 begin
   Result := TRouteChild.AddModule(APath,
                                   AModule,
-                                  ARouteGuardCallback,
                                   AMiddlewares) as TRouteChild;
 end;
 
@@ -131,6 +129,8 @@ begin
   FService := AppInjector.Get<TModuleService>;
   _BindModule;
   _AddRoutes;
+  _RouteHandlers;
+  FRouteHandlers := TObjectList<TRouteHandler>.Create;
 end;
 
 destructor TModule.Destroy;
@@ -141,8 +141,10 @@ begin
   _DestroyInjector;
   // Libera o serviço
   FService.Free;
+  // Libera os routehendlers
+  FRouteHandlers.Free;
   // Console delphi
-  DebugPrint(Format('-- %s DESTROYED', [Self.ClassName]));
+  DebugPrint(Format('-- "%s" DESTROYED', [Self.ClassName]));
   inherited;
 end;
 
@@ -157,6 +159,11 @@ begin
 end;
 
 function TModule.Imports: TImports;
+begin
+  Result := [];
+end;
+
+function TModule.RouteHandlers: TRouteHandlers;
 begin
   Result := [];
 end;
@@ -186,5 +193,19 @@ begin
   FService.RemoveRoutes(Self.ClassName);
 end;
 
+procedure TModule._RouteHandlers;
+var
+  LHandler: TClass;
+begin
+  for LHandler in RouteHandlers do
+  begin
+    FRouteHandlers.Add(TRouteHandler(AppInjector.Get<TObjectFactory>
+                                                .CreateInstance(LHandler)));
+  end;
+end;
+
 end.
+
+
+
 

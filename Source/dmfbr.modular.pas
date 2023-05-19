@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi/Lazarus
+         DMFBr - Desenvolvimento Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -33,6 +33,7 @@ uses
   Rtti,
   Classes,
   SysUtils,
+  StrUtils,
   Generics.Collections,
   dmfbr.module,
   dmfbr.route.parse,
@@ -56,6 +57,7 @@ type
     FModuleStarted: boolean;
     FListener: TListener;
     procedure SetListener(const Value: TListener);
+    procedure _ResolveDisposeRouteModule(const APath: string);
   public
     constructor Create;
     destructor Destroy; override;
@@ -82,7 +84,7 @@ implementation
 { TModularBr }
 function ModularApp: TModularBr;
 begin
-  result := AppInjector.Get<TModularBr>;
+  Result := AppInjector.Get<TModularBr>;
 end;
 
 constructor TModularBr.Create;
@@ -180,7 +182,7 @@ end;
 
 procedure TModularBr.DisposeRouteModule(const APath: String);
 begin
-  FModuleService.DisposeModule(APath);
+  _ResolveDisposeRouteModule(APath);
 end;
 
 procedure TModularBr.Finalize;
@@ -190,4 +192,23 @@ begin
   AppInjector.ExtractInjector<TAppInjector>('ModularBr');
 end;
 
+
+procedure TModularBr._ResolveDisposeRouteModule(const APath: string);
+var
+  LRoutes: TArray<string>;
+  LRoute: string;
+  LRouteParts: string;
+begin
+  LRouteParts := '';
+  LRoutes := SplitString(APath, '/');
+  for LRoute in LRoutes do
+  begin
+    if (LRoute = '') or (LRoute = '/') then
+      Continue;
+    LRouteParts := LRouteParts + '/' + LRoute;
+    FModuleService.DisposeModule(LRouteParts);
+  end;
+end;
+
 end.
+
