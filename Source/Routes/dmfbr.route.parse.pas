@@ -65,7 +65,7 @@ implementation
 
 constructor TRouteParse.Create;
 begin
-  FRouteManager := AppInjector.Get<TRouteManager>;
+  FRouteManager := AppInjector^.Get<TRouteManager>;
 end;
 
 destructor TRouteParse.Destroy;

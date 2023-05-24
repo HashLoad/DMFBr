@@ -40,33 +40,26 @@ uses
   Horse;
 
 type
-  TRouteMiddleware = reference to function(const AUserName: string;
-                                              const APassword: string;
-                                              const AToken: string;
-                                              const APath: string): boolean;
+  TGuardMiddleware = reference to function(const AUserName: string;
+                                           const APassword: string;
+                                           const AToken: string;
+                                           const APath: string): boolean;
 
 function HorseModular(const AppModule: TModule;
-                      const AGuardMiddleware: TRouteMiddleware = nil): THorseCallback; overload;
+                      const AGuardMiddleware: TGuardMiddleware = nil): THorseCallback; overload;
 function HorseModular(const ACharset: string): THorseCallback; overload;
-function Modular: TModularBr;
-
 procedure Middleware(Req: THorseRequest; Res: THorseResponse; Next: TNextProc);
 
 implementation
 
 var
-  GuardMiddleware: TRouteMiddleware;
+  GuardMiddleware: TGuardMiddleware;
   Charset: string;
 
-function Modular: TModularBr; overload;
-begin
-  Result := ModularApp;
-end;
-
 function HorseModular(const AppModule: TModule;
-  const AGuardMiddleware: TRouteMiddleware): THorseCallback;
+  const AGuardMiddleware: TGuardMiddleware): THorseCallback;
 begin
-  ModularApp.Init(AppModule);
+  Modular.Init(AppModule);
   GuardMiddleware := AGuardMiddleware;
   Result := HorseModular('UTF-8');
 end;
@@ -82,6 +75,7 @@ const
   CONTENT_TYPE = 'application/json; charset=UTF-8';
 var
   LResult: TResultPair<Exception, TRouteAbstract>;
+  LAuthorization: string;
   LUserName: string;
   LPassword: string;
   LToken: string;
@@ -96,37 +90,56 @@ begin
     // Guardião de rotas
     if Assigned(GuardMiddleware) then
     begin
+      LAuthorization := Req.Headers['Authorization'];
       LUserName := Req.Params['username'];
       LPassword := Req.Params['password'];
-      LToken := Req.Headers['authorization'];
+      LToken := Req.Headers['Bearer'];
+      { TODO -oIsaque -cParams-Token :
+        preciso implementar o tratamento para todas essas informações e tentar deixar
+        o mais generico possível. }
       if not GuardMiddleware(LUserName, LPassword, LToken, Req.RawWebRequest.PathInfo) then
         raise ERouteGuardianAuthorized.Create;
     end;
-    LResult := ModularApp.LoadRouteModule(Req.RawWebRequest.PathInfo);
+    LResult := Modular.LoadRouteModule(Req.RawWebRequest.PathInfo);
     LResult.TryException(
-      procedure (AValue: Exception)
+      procedure (Error: Exception)
       begin
-        if AValue is EModularError then
+        if Error is EModularError then
         begin
-          Res.Send(AValue.Message).ContentType(CONTENT_TYPE).Status(EModularError(AValue).Status);
-          AValue.Free;
+          Res.Send(Error.Message).Status(EModularError(Error).Status).ContentType(CONTENT_TYPE);
+          Error.Free;
           raise EHorseCallbackInterrupted.Create;
         end
         else
         begin
-          Res.Send(AValue.Message).ContentType(CONTENT_TYPE).Status(500);
-          AValue.Free;
+          Res.Send(Error.Message).Status(500).ContentType(CONTENT_TYPE);
+          Error.Free;
           raise EHorseCallbackInterrupted.Create;
         end;
       end,
-      procedure (AValue: TRouteAbstract)
+      procedure (Route: TRouteAbstract)
       begin
         // A Rota se encontrada, veio até aqui,
-        // mas não precisamos de fazer nada com nela.
+        // mas não precisamos de fazer nada com nela, o modular trata tudo.
       end);
   end;
   try
-    Next;
+    try
+      Next;
+    except
+      on E: EHorseCallbackInterrupted do
+        raise;
+
+      on E: EHorseException do
+        Res.Send(Format('{"error": "%s"}', [E.Message]))
+           .Status(E.Status)
+           .ContentType(CONTENT_TYPE);
+
+      on E: Exception do
+        Res.Send(Format('{"error": "%s", "description": "%s"}', [E.UnitScope, E.Message]))
+           .Status(THTTPStatus.BadRequest)
+           .ContentType(CONTENT_TYPE);
+    end;
   finally
     Res.RawWebResponse.ContentType := CONTENT_TYPE;
     // Destroy modulos e sub-modulos usados na rotas.

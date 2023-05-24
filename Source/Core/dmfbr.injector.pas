@@ -37,6 +37,7 @@ uses
   Generics.Collections;
 
 type
+  PAppInjector = ^TAppInjector;
   TAppInjector = class(TInjectorBr)
   public
     procedure CreateModularInjector;
@@ -62,7 +63,7 @@ type
   end;
 
 var
-  AppInjector: TAppInjector;
+  AppInjector: PAppInjector = nil;
 
 implementation
 
@@ -189,7 +190,7 @@ var
   LInjector: TCoreInjector;
 begin
   LInjector := TCoreInjector.Create;
-  AppInjector.AddInjector('ModularBr', LInjector);
+  AppInjector^.AddInjector('ModularBr', LInjector);
 end;
 
 function TAppInjector.Get<T>(const ATag: String): T;
@@ -203,7 +204,7 @@ begin
   begin
     if LItem.GetInstance is TAppInjector then
     begin
-      Result := TAppInjector(LItem.GetInstance).GetTry<T>;
+      Result := TAppInjector(LItem.GetInstance).GetTry<T>(ATag);
       if Result <> nil then
         Exit;
     end;
@@ -221,7 +222,7 @@ begin
   begin
     if LItem.GetInstance is TAppInjector then
     begin
-      Result := TAppInjector(LItem.GetInstance).GetInterfaceTry<I>;
+      Result := TAppInjector(LItem.GetInstance).GetInterfaceTry<I>(ATag);
       if Result <> nil then
         Exit;
     end;
@@ -239,14 +240,16 @@ begin
 end;
 
 initialization
-  AppInjector := TAppInjector.Create;
-  AppInjector.CreateModularInjector;
+  New(AppInjector);
+  AppInjector^ := TAppInjector.Create;
+  AppInjector^.CreateModularInjector;
 
 finalization
   if Assigned(AppInjector) then
   begin
-    ModularApp.Finalize;
-    AppInjector.Free;
+    Modular.Finalize;
+    AppInjector^.Free;
+    Dispose(AppInjector);
   end;
 
 end.

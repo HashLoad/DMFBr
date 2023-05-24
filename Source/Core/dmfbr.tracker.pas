@@ -50,7 +50,7 @@ type
 
   TTracker = class
   private
-    FAppInjector: TAppInjector;
+    FAppInjector: PAppInjector;
     FAppModule: TModuleAbstract;
     FRoutes: TTrackerRoute;
     FAppIntialPath: string;
@@ -93,7 +93,9 @@ constructor TTracker.Create;
 begin
   FRoutes := TTrackerRoute.Create([doOwnsValues]);
   FAppInjector := AppInjector;
-  FRouteManager := FAppInjector.Get<TRouteManager>;
+  if not Assigned(FAppInjector) then
+    raise EAppInjector.Create;
+  FRouteManager := FAppInjector^.Get<TRouteManager>;
 end;
 
 destructor TTracker.Destroy;
@@ -106,7 +108,7 @@ end;
 
 procedure TTracker.ExtractInjector<T>(const ATag: string);
 begin
-  FAppInjector.ExtractInjector<T>(ATag);
+  FAppInjector^.ExtractInjector<T>(ATag);
 end;
 
 procedure TTracker._AddModuleBind(const AModule: TModuleAbstract;
@@ -162,7 +164,7 @@ end;
 
 function TTracker._CreateModule(const AModule: TClass): TModuleAbstract;
 begin
-  Result := FAppInjector.Get<TObjectFactory>
+  Result := FAppInjector^.Get<TObjectFactory>
                         .CreateInstance(AModule) as TModuleAbstract;
 end;
 
@@ -199,13 +201,18 @@ var
   LInjector: TAppInjector;
   LModule: TClass;
 begin
+  // O Bind dos módulos são efetuados por rota, se várias rotas usarem o mesmo
+  // módulo, deve gerar somente um injector para o módulo.
+  LInjector := FAppInjector^.Get<TAppInjector>(AModule.ClassName);
+  if LInjector <> nil then
+    Exit;
   // Injector do Modulo
   LInjector := _CreateInjector;
   _AddModuleBind(AModule, LInjector);
   for LModule in AModule.Imports do
     _ResolverImports(LModule, LInjector);
   // Adiciona ao AppInjector
-  FAppInjector.AddInjector(AModule.ClassName, LInjector);
+  FAppInjector^.AddInjector(AModule.ClassName, LInjector);
 end;
 
 function TTracker.CurrentPath: string;
@@ -236,12 +243,12 @@ end;
 
 function TTracker.GetBind<T>: T;
 begin
-  Result := FAppInjector.Get<T>;
+  Result := FAppInjector^.Get<T>;
 end;
 
 function TTracker.GetBindInterface<I>: I;
 begin
-  Result := FAppInjector.GetInterface<I>;
+  Result := FAppInjector^.GetInterface<I>;
 end;
 
 function TTracker.GetModule: TModuleAbstract;

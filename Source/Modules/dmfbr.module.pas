@@ -35,6 +35,7 @@ uses
   SysUtils,
   Generics.Collections,
   app.injector.events,
+  dmfbr.injector,
   dmfbr.module.abstract,
   dmfbr.route.abstract,
   dmfbr.module.service,
@@ -58,6 +59,7 @@ type
 
   TModule = class(TModuleAbstract)
   private
+    FAppInjector: PAppInjector;
     FRouteHandlers: TObjectList<TRouteHandler>;
     FService: TModuleService;
     procedure _DestroyRoutes;
@@ -82,7 +84,6 @@ type
 // RouteModule
 function RouteModule(const APath: string;
   const AModule: TClass): TRouteModule; overload;
-
 function RouteModule(const APath: string; const AModule: TClass;
   const AMiddlewares: TMiddlewares): TRouteModule; overload;
 
@@ -94,7 +95,6 @@ implementation
 
 uses
   eclbr.objects,
-  dmfbr.injector,
   dmfbr.exception;
 
 function RouteModule(const APath: string; const AModule: TClass): TRouteModule;
@@ -126,15 +126,19 @@ end;
 
 constructor TModule.Create;
 begin
-  FService := AppInjector.Get<TModuleService>;
+  FAppInjector := AppInjector;
+  if not Assigned(FAppInjector) then
+    raise EAppInjector.Create;
+  FService := FAppInjector^.Get<TModuleService>;
+  FRouteHandlers := TObjectList<TRouteHandler>.Create;
   _BindModule;
   _AddRoutes;
   _RouteHandlers;
-  FRouteHandlers := TObjectList<TRouteHandler>.Create;
 end;
 
 destructor TModule.Destroy;
 begin
+  FAppInjector := nil;
   // Destroy as rotas do modulo
   _DestroyRoutes;
   // Destroy o injector do modulo
@@ -199,8 +203,8 @@ var
 begin
   for LHandler in RouteHandlers do
   begin
-    FRouteHandlers.Add(TRouteHandler(AppInjector.Get<TObjectFactory>
-                                                .CreateInstance(LHandler)));
+    FRouteHandlers.Add(TRouteHandler(AppInjector^.Get<TObjectFactory>
+                                                 .CreateInstance(LHandler)));
   end;
 end;
 

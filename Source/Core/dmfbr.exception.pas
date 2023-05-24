@@ -35,6 +35,11 @@ uses
   SysUtils;
 
 type
+  EAppInjector = class(Exception)
+  public
+    constructor Create;
+  end;
+
   EModularError = class abstract (Exception)
   public
     Status: integer;
@@ -283,6 +288,13 @@ begin
   else
     inherited;
   Status := 500;
+end;
+
+{ EAppInjector }
+
+constructor EAppInjector.Create;
+begin
+  inherited Create('The AppInjector pointer is not assigned.')
 end;
 
 end.

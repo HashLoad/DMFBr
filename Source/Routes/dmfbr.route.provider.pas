@@ -46,6 +46,7 @@ type
   TRouteProvider = class
   private
     FTracker: TTracker;
+    FAppInjector: PAppInjector;
     function _RouteMiddleware(const ARoute: TRouteAbstract): TRouteAbstract;
   public
     constructor Create;
@@ -58,11 +59,14 @@ implementation
 
 constructor TRouteProvider.Create;
 begin
-
+  FAppInjector := AppInjector;
+  if not Assigned(FAppInjector) then
+    raise EAppInjector.Create;
 end;
 
 destructor TRouteProvider.Destroy;
 begin
+  FAppInjector := nil;
   if Assigned(FTracker) then
     FTracker := nil;
   inherited;
@@ -104,8 +108,8 @@ begin
     Exit;
   if not Assigned(Result.ValueSuccess.ModuleInstance) then
   begin
-    Result.ValueSuccess.ModuleInstance := AppInjector.Get<TObjectFactory>
-                                                     .CreateInstance(Result.ValueSuccess.Module);
+    Result.ValueSuccess.ModuleInstance := FAppInjector^.Get<TObjectFactory>
+                                                      .CreateInstance(Result.ValueSuccess.Module);
     // Console delphi
     DebugPrint(Format('-- %s CREATED', [Result.ValueSuccess.Module.ClassName]));
   end;

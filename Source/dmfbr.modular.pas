@@ -49,6 +49,7 @@ type
 
   TModularBr = class sealed
   private
+    FAppInjector: PAppInjector;
     FInitialRoutePath: string;
     FAppModule: TModule;
     FRouteParse: TRouteParse;
@@ -77,18 +78,21 @@ type
     property Listener: TListener read FListener write SetListener;
   end;
 
-function ModularApp: TModularBr;
+function Modular: TModularBr;
 
 implementation
 
 { TModularBr }
-function ModularApp: TModularBr;
+function Modular: TModularBr;
 begin
-  Result := AppInjector.Get<TModularBr>;
+  Result := AppInjector^.Get<TModularBr>;
 end;
 
 constructor TModularBr.Create;
 begin
+  FAppInjector := AppInjector;
+  if not Assigned(FAppInjector) then
+    raise EAppInjector.Create;
   FModuleStarted := false;
 end;
 
@@ -189,7 +193,7 @@ procedure TModularBr.Finalize;
 begin
   // Nessa ordem deve ser.
   FAppModule.Free;
-  AppInjector.ExtractInjector<TAppInjector>('ModularBr');
+  FAppInjector^.ExtractInjector<TAppInjector>('ModularBr');
 end;
 
 
