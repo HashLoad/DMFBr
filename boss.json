@@ -1,7 +1,7 @@
 {
 	"name": "DMFBr",
 	"description": "Desenvolvimento Modular Framework for Delphi",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"homepage": "www.isaquepinheiro.com.br",
 	"mainsrc": "Source/",
 	"projects": [],
