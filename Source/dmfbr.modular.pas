@@ -35,20 +35,20 @@ uses
   SysUtils,
   StrUtils,
   Generics.Collections,
+  result.pair,
+  app.injector.service,
   dmfbr.module,
   dmfbr.route.parse,
   dmfbr.module.service,
   dmfbr.bind.service,
   dmfbr.injector,
   dmfbr.exception,
-  result.pair,
-  app.injector.service;
+  dmfbr.request;
 
 type
-  TListener = TProc<string>;
-
   TModularBr = class sealed
   private
+    FAppInjector: PAppInjector;
     FInitialRoutePath: string;
     FAppModule: TModule;
     FRouteParse: TRouteParse;
@@ -56,7 +56,6 @@ type
     FBindService: TBindService;
     FModuleStarted: boolean;
     FListener: TListener;
-    procedure SetListener(const Value: TListener);
     procedure _ResolveDisposeRouteModule(const APath: string);
   public
     constructor Create;
@@ -65,30 +64,32 @@ type
     procedure IncludeBindService(const AService: TBindService);
     procedure IncludeRouteParser(const ARouteParse: TRouteParse);
     procedure Init(const AModule: TModule;
-      const AInitialRoutePath: String = '/');
+      const AListener: TListener = nil;
+      const AInitialRoutePath: string = '/');
     procedure Finalize;
     function LoadRouteModule(const APath: string;
-      const AArgs: TArray<TValue> = nil): TResultPair<Exception, TRouteAbstract>;
+      const AReq: IRouteRequest = nil): TResultPair<Exception, TRouteAbstract>;
     procedure DisposeRouteModule(const APath: String);
-    //
-    function &Get<T: class, constructor>(AName: string = ''): T;
-    function &GetInterface<I: IInterface>(AName: string = ''): I;
-    //
-    property Listener: TListener read FListener write SetListener;
+    function Get<T: class, constructor>(ATag: string = ''): T;
+    function GetInterface<I: IInterface>(ATag: string = ''): I;
   end;
 
-function ModularApp: TModularBr;
+function Modular: TModularBr;
 
 implementation
 
 { TModularBr }
-function ModularApp: TModularBr;
+
+function Modular: TModularBr;
 begin
-  Result := AppInjector.Get<TModularBr>;
+  Result := AppInjector^.Get<TModularBr>;
 end;
 
 constructor TModularBr.Create;
 begin
+  FAppInjector := AppInjector;
+  if not Assigned(FAppInjector) then
+    raise EAppInjector.Create;
   FModuleStarted := false;
 end;
 
@@ -106,11 +107,11 @@ begin
   inherited;
 end;
 
-function TModularBr.GetInterface<I>(AName: string = ''): I;
+function TModularBr.GetInterface<I>(ATag: string = ''): I;
 var
   LResult: TResultPair<Exception, I>;
 begin
-  LResult := FBindService.GetBindInterface<I>;
+  LResult := FBindService.GetBindInterface<I>(ATag);
   LResult.TryException(
     procedure (AValue: Exception)
     begin
@@ -123,11 +124,11 @@ begin
   Result := LResult.ValueSuccess;
 end;
 
-function TModularBr.Get<T>(AName: string): T;
+function TModularBr.Get<T>(ATag: string): T;
 var
   LResult: TResultPair<Exception, T>;
 begin
-  LResult := FBindService.GetBind<T>;
+  LResult := FBindService.GetBind<T>(ATag);
   LResult.TryException(
     procedure (AValue: Exception)
     begin
@@ -156,28 +157,24 @@ begin
 end;
 
 procedure TModularBr.Init(const AModule: TModule;
-  const AInitialRoutePath: String);
+  const AListener: TListener; const AInitialRoutePath: String);
 begin
   if FModuleStarted then
     raise EModuleStartedException.CreateFmt('', [AModule.ClassName]);
   FInitialRoutePath := AInitialRoutePath;
+  FListener := AListener;
   FAppModule := AModule;
   FModuleService.Start(AModule, AInitialRoutePath);
   FModuleStarted := true;
-  DebugPrint(Format('%s started!', [AModule.ClassName]));
+  {$IFDEF DEBUG}
+  DebugPrint(Format('[%s] Starting DMFBr application', ['ModularInit']));
+  {$ENDIF}
 end;
 
 function TModularBr.LoadRouteModule(const APath: string;
-  const AArgs: TArray<TValue>): TResultPair<exception, TRouteAbstract>;
+  const AReq: IRouteRequest): TResultPair<Exception, TRouteAbstract>;
 begin
-  Result := FRouteParse.SelectRoute(APath, AArgs);
-  if Assigned(FListener) then
-    FListener(APath);
-end;
-
-procedure TModularBr.SetListener(const Value: TListener);
-begin
-  FListener := Value;
+  Result := FRouteParse.SelectRoute(APath, AReq, FListener);
 end;
 
 procedure TModularBr.DisposeRouteModule(const APath: String);
@@ -189,7 +186,7 @@ procedure TModularBr.Finalize;
 begin
   // Nessa ordem deve ser.
   FAppModule.Free;
-  AppInjector.ExtractInjector<TAppInjector>('ModularBr');
+  FAppInjector^.ExtractInjector<TAppInjector>('ModularBr');
 end;
 
 

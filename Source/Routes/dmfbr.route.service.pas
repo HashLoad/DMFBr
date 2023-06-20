@@ -64,12 +64,12 @@ begin
   try
     Result := FProvider.GetRoute(AArgs);
     if Result.ValueSuccess = nil then
-      Result.Failure(ERouteNotFound.CreateFmt('', [AArgs.Path]));
+      Result.Failure(ERouteNotFoundException.CreateFmt('', [AArgs.Path]));
   except
-    on E: ERouteGuardianAuthorized do
-      Result.Failure(ERouteGuardianAuthorized.Create);
+    on E: EUnauthorizedException do
+      Result.Failure(EUnauthorizedException.Create(''));
     on E: Exception do
-      Result.Failure(Exception.Create(E.Message));
+      Result.Failure(EBadRequestException.Create(E.Message));
   end;
 end;
 

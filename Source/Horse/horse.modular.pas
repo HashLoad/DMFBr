@@ -36,44 +36,28 @@ uses
   dmfbr.module,
   dmfbr.modular,
   dmfbr.exception,
+  dmfbr.request,
   result.pair,
   Horse;
 
-type
-  TRouteMiddleware = reference to function(const AUserName: string;
-                                              const APassword: string;
-                                              const AToken: string;
-                                              const APath: string): boolean;
-
-function HorseModular(const AppModule: TModule;
-                      const AGuardMiddleware: TRouteMiddleware = nil): THorseCallback; overload;
+function HorseModular(const AppModule: TModule): THorseCallback; overload;
 function HorseModular(const ACharset: string): THorseCallback; overload;
-function Modular: TModularBr;
-
 procedure Middleware(Req: THorseRequest; Res: THorseResponse; Next: TNextProc);
+function _ResolverRouteRequest(const Req: THorseRequest): IRouteRequest;
 
 implementation
 
 var
-  GuardMiddleware: TRouteMiddleware;
   Charset: string;
 
-function Modular: TModularBr; overload;
+function HorseModular(const AppModule: TModule): THorseCallback;
 begin
-  Result := ModularApp;
-end;
-
-function HorseModular(const AppModule: TModule;
-  const AGuardMiddleware: TRouteMiddleware): THorseCallback;
-begin
-  ModularApp.Init(AppModule);
-  GuardMiddleware := AGuardMiddleware;
+  Modular.Init(AppModule);
   Result := HorseModular('UTF-8');
 end;
 
 function HorseModular(const ACharset: string): THorseCallback;
 begin
-  Charset := ACharset;
   Result := Middleware;
 end;
 
@@ -82,56 +66,89 @@ const
   CONTENT_TYPE = 'application/json; charset=UTF-8';
 var
   LResult: TResultPair<Exception, TRouteAbstract>;
+  LAuthorization: string;
   LUserName: string;
   LPassword: string;
   LToken: string;
+  LRequest: IRouteRequest;
 begin
-  // Tratamento para ignorar rodas de documentação nesse middleware.
+  // Tratamento para ignorar rotas de documentação swagger nesse middleware.
   if (Pos(LowerCase('swagger'), LowerCase(Req.RawWebRequest.PathInfo)) > 0) or
      (Pos(LowerCase('favicon.ico'), LowerCase(Req.RawWebRequest.PathInfo)) > 0) then
-    Exit;
+    exit;
   // Inicia rota e binds
   if (Req.MethodType in [mtGet, mtPost, mtPut, mtPatch, mtDelete]) then
   begin
-    // Guardião de rotas
-    if Assigned(GuardMiddleware) then
-    begin
-      LUserName := Req.Params['username'];
-      LPassword := Req.Params['password'];
-      LToken := Req.Headers['authorization'];
-      if not GuardMiddleware(LUserName, LPassword, LToken, Req.RawWebRequest.PathInfo) then
-        raise ERouteGuardianAuthorized.Create;
-    end;
-    LResult := ModularApp.LoadRouteModule(Req.RawWebRequest.PathInfo);
+    LRequest := _ResolverRouteRequest(Req);
+    LResult := Modular.LoadRouteModule(Req.RawWebRequest.PathInfo, LRequest);
     LResult.TryException(
-      procedure (AValue: Exception)
+      procedure (Error: Exception)
       begin
-        if AValue is EModularError then
+        if Error is EModularException then
         begin
-          Res.Send(AValue.Message).ContentType(CONTENT_TYPE).Status(EModularError(AValue).Status);
-          AValue.Free;
+          Res.Send(Error.Message).Status(EModularException(Error)
+                                 .Status).ContentType(CONTENT_TYPE);
+          Error.Free;
           raise EHorseCallbackInterrupted.Create;
         end
         else
         begin
-          Res.Send(AValue.Message).ContentType(CONTENT_TYPE).Status(500);
-          AValue.Free;
+          Res.Send(Error.Message).Status(500).ContentType(CONTENT_TYPE);
+          Error.Free;
           raise EHorseCallbackInterrupted.Create;
         end;
       end,
-      procedure (AValue: TRouteAbstract)
+      procedure (Route: TRouteAbstract)
       begin
         // A Rota se encontrada, veio até aqui,
-        // mas não precisamos de fazer nada com nela.
+        // mas não precisamos de fazer nada com ela, o modular trata tudo.
       end);
   end;
   try
-    Next;
+    try
+      Next;
+    except
+      on E: EHorseCallbackInterrupted do
+        raise;
+      on E: EHorseException do
+        Res.Send(Format('{ ' + sLineBreak +
+                        '   "statusCode": %s,' + sLineBreak +
+                        '   "message": "%s"' + sLineBreak +
+                        '}', [IntToStr(E.Code), E.Message]))
+           .Status(E.Status)
+           .ContentType(CONTENT_TYPE);
+      on E: Exception do
+        Res.Send(Format('{ ' + sLineBreak +
+                        '   "statusCode": "%s", ' + sLineBreak +
+                        '   "scope": "%s", ' + sLineBreak +
+                        '   "message": "%s"' + sLineBreak +
+                        '}', ['400', E.UnitScope, E.Message]))
+           .Status(THTTPStatus.BadRequest)
+           .ContentType(CONTENT_TYPE);
+    end;
   finally
-    Res.RawWebResponse.ContentType := CONTENT_TYPE;
-    // Destroy modulos e sub-modulos usados na rotas.
     Modular.DisposeRouteModule(Req.RawWebRequest.PathInfo);
   end;
+end;
+
+function _ResolverRouteRequest(const Req: THorseRequest): IRouteRequest;
+var
+  LRequest: IRouteRequest;
+begin
+  Result := nil;
+  try
+    LRequest := TRouteRequest.Create;
+    LRequest.SetHeader(Req.Headers['Authorization']);
+    LRequest.SetBody(Req.Body);
+    LRequest.SetParams(Req.Params.Content);
+    LRequest.SetQuerys(Req.Query.Content);
+    LRequest.SetHost(Req.RawWebRequest.Host);
+    LRequest.SetContentType(Req.RawWebRequest.ContentType);
+    LRequest.SetPathInfo(Req.RawWebRequest.PathInfo);
+  except
+    exit;
+  end;
+  Result := LRequest;
 end;
 
 end.

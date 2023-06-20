@@ -32,33 +32,32 @@ interface
 uses
   SysUtils,
   Math,
-  Rtti;
+  Rtti,
+  dmfbr.request;
 
 type
   TRouteParam = record
   private
     FPath: string;
     FSchema: string;
-    FArguments: TArray<TValue>;
+    FRequest: IRouteRequest;
   public
     constructor Create(const APath: string;
-      const AArguments: TArray<TValue> = nil;
-      const ASchema: string = '');
+      const AReq: IRouteRequest = nil; const ASchema: string = '');
     procedure ResolveURL;
     property Path: string read FPath;
     property Schema: string read FSchema;
-    property Arguments: TArray<TValue> read FArguments;
+    property Request: IRouteRequest read Frequest;
   end;
 
 implementation
 
 constructor TRouteParam.Create(const APath: string;
-  const AArguments: TArray<TValue>;
-  const ASchema: string);
+  const AReq: IRouteRequest; const ASchema: string);
 begin
   FPath := APath;
   FSchema := ASchema;
-  FArguments := AArguments;
+  FRequest := AReq;
 end;
 
 procedure TRouteParam.ResolveURL;

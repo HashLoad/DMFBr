@@ -34,21 +34,24 @@ uses
   Classes,
   SysUtils,
   StrUtils,
+  result.pair,
   dmfbr.injector,
   dmfbr.exception,
   dmfbr.route.abstract,
   dmfbr.route.param,
   dmfbr.route.service,
   dmfbr.route.manager,
-  result.pair;
+  dmfbr.request;
 
 type
   TReturnPair = TResultPair<Exception, TRouteAbstract>;
+  TListener = TProc<string>;
 
   TRouteParse = class
   private
     FService: TRouteService;
     FRouteManager: TRouteManager;
+    FListener: TListener;
     procedure _ResolveRoutes(const APath: string;
       const ACallback: TFunc<string, TReturnPair>);
   public
@@ -56,7 +59,7 @@ type
     destructor Destroy; override;
     procedure IncludeRouteService(const AService: TRouteService);
     function SelectRoute(const APath: string;
-      const AArgs: TArray<TValue> = nil): TReturnPair;
+      const AReq: IRouteRequest = nil; const AListener: TListener = nil): TReturnPair;
   end;
 
 implementation
@@ -65,7 +68,7 @@ implementation
 
 constructor TRouteParse.Create;
 begin
-  FRouteManager := AppInjector.Get<TRouteManager>;
+  FRouteManager := AppInjector^.Get<TRouteManager>;
 end;
 
 destructor TRouteParse.Destroy;
@@ -80,22 +83,23 @@ begin
 end;
 
 function TRouteParse.SelectRoute(const APath: string;
-  const AArgs: TArray<TValue>): TReturnPair;
+  const AReq: IRouteRequest; const AListener: TListener): TReturnPair;
 var
   LArgs: TRouteParam;
   LPath: string;
   LRouteParts: string;
   LRouteResult: TReturnPair;
 begin
+  FListener := AListener;
   LPath := LowerCase(APath);
   if LPath = '' then
   begin
-    Result.Failure(ERouteNotFound.CreateFmt('', [APath]));
+    Result.Failure(ERouteNotFoundException.CreateFmt('', [APath]));
     Exit;
   end;
   if FRouteManager.FindEndPoint(LPath) <> '' then
   begin
-    LArgs := TRouteParam.Create(LPath, AArgs);
+    LArgs := TRouteParam.Create(LPath, AReq);
     LRouteResult := FService.GetRoute(LArgs);
   end
   else
@@ -103,10 +107,12 @@ begin
     LRouteParts := '';
     // Resolve routes
     _ResolveRoutes(APath,
-                   function (ARoute: string): TReturnPair
+                   function (Route: string): TReturnPair
                    begin
-                     LRouteParts := LRouteParts + '/' + ARoute;
-                     LArgs := TRouteParam.Create(LRouteParts, AArgs);
+                     LRouteParts := LRouteParts + '/' + Route;
+                     LArgs := TRouteParam.Create(LRouteParts, AReq);
+                     if Assigned(FListener) then
+                       FListener(LRouteParts);
                      // Se "LRouteResult.isFailure", quer dizer que a rota enterior
                      // não foi encontrada, então a VAR Exception deve ser liberada
                      // para que somente a última rota do loop, atribua valor a
@@ -117,6 +123,7 @@ begin
                      Result := LRouteResult;
                    end);
   end;
+  FListener := nil;
   Result := LRouteResult;
 end;
 

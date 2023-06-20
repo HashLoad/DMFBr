@@ -35,11 +35,13 @@ uses
   SysUtils,
   Generics.Collections,
   app.injector.events,
+  dmfbr.injector,
   dmfbr.module.abstract,
   dmfbr.route.abstract,
   dmfbr.module.service,
   dmfbr.route.manager,
   dmfbr.route,
+  dmfbr.request,
   dmfbr.route.handler,
   dmfbr.bind;
 
@@ -55,9 +57,11 @@ type
   TRouteHandlers = dmfbr.module.abstract.TRouteHandlers;
   TValue = Rtti.TValue;
   TRouteManager = dmfbr.route.manager.TRouteManager;
+  IRouteRequest = dmfbr.request.IRouteRequest;
 
   TModule = class(TModuleAbstract)
   private
+    FAppInjector: PAppInjector;
     FRouteHandlers: TObjectList<TRouteHandler>;
     FService: TModuleService;
     procedure _DestroyRoutes;
@@ -82,7 +86,6 @@ type
 // RouteModule
 function RouteModule(const APath: string;
   const AModule: TClass): TRouteModule; overload;
-
 function RouteModule(const APath: string; const AModule: TClass;
   const AMiddlewares: TMiddlewares): TRouteModule; overload;
 
@@ -94,7 +97,6 @@ implementation
 
 uses
   eclbr.objects,
-  dmfbr.injector,
   dmfbr.exception;
 
 function RouteModule(const APath: string; const AModule: TClass): TRouteModule;
@@ -126,15 +128,19 @@ end;
 
 constructor TModule.Create;
 begin
-  FService := AppInjector.Get<TModuleService>;
+  FAppInjector := AppInjector;
+  if not Assigned(FAppInjector) then
+    raise EAppInjector.Create;
+  FService := FAppInjector^.Get<TModuleService>;
+  FRouteHandlers := TObjectList<TRouteHandler>.Create;
   _BindModule;
   _AddRoutes;
   _RouteHandlers;
-  FRouteHandlers := TObjectList<TRouteHandler>.Create;
 end;
 
 destructor TModule.Destroy;
 begin
+  FAppInjector := nil;
   // Destroy as rotas do modulo
   _DestroyRoutes;
   // Destroy o injector do modulo
@@ -144,7 +150,9 @@ begin
   // Libera os routehendlers
   FRouteHandlers.Free;
   // Console delphi
-  DebugPrint(Format('-- "%s" DESTROYED', [Self.ClassName]));
+  {$IFDEF DEBUG}
+  DebugPrint(Format('[InstanceLoad] %s dependencies destroyed', [Self.ClassName]));
+  {$ENDIF}
   inherited;
 end;
 
@@ -199,12 +207,13 @@ var
 begin
   for LHandler in RouteHandlers do
   begin
-    FRouteHandlers.Add(TRouteHandler(AppInjector.Get<TObjectFactory>
-                                                .CreateInstance(LHandler)));
+    FRouteHandlers.Add(TRouteHandler(AppInjector^.Get<TObjectFactory>
+                                                 .CreateInstance(LHandler)));
   end;
 end;
 
 end.
+
 
 
 
