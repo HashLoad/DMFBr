@@ -43,7 +43,8 @@ uses
   dmfbr.route.abstract,
   dmfbr.route.manager,
   eclbr.objects,
-  dmfbr.injector;
+  dmfbr.injector,
+  dmfbr.request;
 
 type
   TTrackerRoute = TObjectDictionary<TRouteKey, TRouteAbstract>;
@@ -56,6 +57,7 @@ type
     FAppIntialPath: string;
     FCurrentPath: String;
     FRouteManager: TRouteManager;
+    FRequest: IRouteRequest;
     procedure _AddModuleBind(const AModule: TModuleAbstract;
       const AInjector: TAppInjector);
     procedure _AddExportedModuleBind(const AModule: TModuleAbstract;
@@ -78,8 +80,8 @@ type
     procedure RemoveRoutes(const AModuleName: string);
     procedure AddRoutes(const AModule: TModuleAbstract);
     procedure ExtractInjector<T: class>(const ATag: string);
-    function GetBind<T: class, constructor>: T;
-    function GetBindInterface<I: IInterface>: I;
+    function GetBind<T: class, constructor>(const ATag: string): T;
+    function GetBindInterface<I: IInterface>(const ATag: string): I;
     function FindRoute(const AArgs: TRouteParam): TRouteAbstract;
     function GetModule: TModuleAbstract;
     function CurrentPath: string;
@@ -128,6 +130,8 @@ procedure TTracker._AddExportedModuleBind(const AModule: TModuleAbstract;
 var
   LBind: TBind<TObject>;
 begin
+  if Length(AModule.ExportedBinds) = 0 then
+    exit;
   for LBind in AModule.ExportedBinds do
   begin
     LBind.IncludeInjector(AInjector);
@@ -141,6 +145,8 @@ var
   LModule: TClass;
 begin
   _AddExportedModuleBind(AModule, AInjector);
+  if Length(AModule.Imports) = 0 then
+    exit;
   for LModule in AModule.Imports do
     _ResolverImports(LModule, AInjector);
 end;
@@ -165,7 +171,7 @@ end;
 function TTracker._CreateModule(const AModule: TClass): TModuleAbstract;
 begin
   Result := FAppInjector^.Get<TObjectFactory>
-                        .CreateInstance(AModule) as TModuleAbstract;
+                         .CreateInstance(AModule) as TModuleAbstract;
 end;
 
 procedure TTracker._GuardianRoute(const ARoute: TRouteAbstract);
@@ -174,15 +180,21 @@ var
   LCall: TRttiMethod;
   LFor: integer;
   LContext: TRttiContext;
+  LParamRequest: TValue;
 begin
+  if Length(ARoute.Middlewares) = 0 then
+    exit;
   for LFor := 0 to High(ARoute.Middlewares) do
   begin
     LMiddleware := ARoute.Middlewares[LFor];
     LCall := LContext.GetType(LMiddleware).GetMethod('Call');
     if not Assigned(LCall) then
-      Continue;
-    if not LCall.Invoke(LMiddleware, []).AsType<Boolean> then
-      raise ERouteGuardianAuthorized.Create;
+      continue;
+    LParamRequest := TValue.From<IRouteRequest>(FRequest);
+    if LParamRequest.AsInterface = nil then
+      continue;
+    if not LCall.Invoke(LMiddleware, [LParamRequest]).AsType<boolean> then
+      raise EUnauthorizedException.Create('');
   end;
 end;
 
@@ -209,8 +221,14 @@ begin
   // Injector do Modulo
   LInjector := _CreateInjector;
   _AddModuleBind(AModule, LInjector);
-  for LModule in AModule.Imports do
-    _ResolverImports(LModule, LInjector);
+  {$IFDEF DEBUG}
+  DebugPrint(Format('[InstanceLoad] %s dependencies initialized', [AModule.ClassName]));
+  {$ENDIF}
+  if Length(AModule.Imports) > 0 then
+  begin
+    for LModule in AModule.Imports do
+      _ResolverImports(LModule, LInjector);
+  end;
   // Adiciona ao AppInjector
   FAppInjector^.AddInjector(AModule.ClassName, LInjector);
 end;
@@ -226,6 +244,9 @@ var
   LEndPoint: string;
   LRoute: TRouteAbstract;
 begin
+  // Request atualizada a cada requisição, para ser usada internamente
+  FRequest := AArgs.Request;
+  //
   Result := nil;
   LEndPoint := FRouteManager.FindEndpoint(AArgs.Path);
   if LEndPoint = '' then
@@ -241,20 +262,20 @@ begin
   end;
 end;
 
-function TTracker.GetBind<T>: T;
+function TTracker.GetBind<T>(const ATag: string): T;
 begin
-  Result := FAppInjector^.Get<T>;
+  Result := FAppInjector^.Get<T>(ATag);
 end;
 
-function TTracker.GetBindInterface<I>: I;
+function TTracker.GetBindInterface<I>(const ATag: string): I;
 begin
-  Result := FAppInjector^.GetInterface<I>;
+  Result := FAppInjector^.GetInterface<I>(ATag);
 end;
 
 function TTracker.GetModule: TModuleAbstract;
 begin
   if not Assigned(FAppModule) then
-    raise EModuleStartedInit.Create;
+    raise EModuleStartedInitException.Create('');
   Result := FAppModule;
 end;
 
@@ -262,7 +283,6 @@ procedure TTracker._RemoveEndPoint(const APath: string);
 begin
   FRouteManager.EndPoints.Remove(LowerCase(APath));
   FRouteManager.EndPoints.Sort;
-  DebugPrint(Format('-- "%s" ENDIPOINT REMOVED', [APath]));
 end;
 
 procedure TTracker.RemoveRoutes(const AModuleName: string);
@@ -277,7 +297,6 @@ begin
     _RemoveEndPoint(LKey.Path);
     // Remove todas as rotas/sub-rotas do módulo que está sendo destuído.
     FRoutes.Remove(LKey);
-    DebugPrint(Format('-- "%s" ROUTE REMOVED', [LKey.Path]));
   end;
 end;
 
@@ -299,6 +318,9 @@ begin
     Exit;
   try
     _AddModuleImportsBind(LInstance, AInjector);
+    {$IFDEF DEBUG}
+    DebugPrint(Format('[InstanceImported] %s dependencies imported', [AModule.ClassName]));
+    {$ENDIF}
   finally
     LInstance.Free;
   end;

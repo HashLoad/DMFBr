@@ -41,6 +41,7 @@ uses
   dmfbr.module.service,
   dmfbr.route.manager,
   dmfbr.route,
+  dmfbr.request,
   dmfbr.route.handler,
   dmfbr.bind;
 
@@ -56,6 +57,7 @@ type
   TRouteHandlers = dmfbr.module.abstract.TRouteHandlers;
   TValue = Rtti.TValue;
   TRouteManager = dmfbr.route.manager.TRouteManager;
+  IRouteRequest = dmfbr.request.IRouteRequest;
 
   TModule = class(TModuleAbstract)
   private
@@ -148,7 +150,9 @@ begin
   // Libera os routehendlers
   FRouteHandlers.Free;
   // Console delphi
-  DebugPrint(Format('-- "%s" DESTROYED', [Self.ClassName]));
+  {$IFDEF DEBUG}
+  DebugPrint(Format('[InstanceLoad] %s dependencies destroyed', [Self.ClassName]));
+  {$ENDIF}
   inherited;
 end;
 
@@ -209,6 +213,7 @@ begin
 end;
 
 end.
+
 
 
 

@@ -42,8 +42,8 @@ type
   public
     destructor Destroy; override;
     procedure IncludeBindProvider(const AProvider: TBindProvider);
-    function GetBind<T: class, constructor>: TResultPair<Exception, T>;
-    function GetBindInterface<I: IInterface>: TResultPair<Exception, I>;
+    function GetBind<T: class, constructor>(const ATag: string): TResultPair<Exception, T>;
+    function GetBindInterface<I: IInterface>(const ATag: string): TResultPair<Exception, I>;
   end;
 
 implementation
@@ -60,27 +60,27 @@ begin
   inherited;
 end;
 
-function TBindService.GetBindInterface<I>: TResultPair<Exception, I>;
+function TBindService.GetBindInterface<I>(const ATag: string): TResultPair<Exception, I>;
 begin
   try
-    Result := FProvider.GetBindInterface<I>;
+    Result := FProvider.GetBindInterface<I>(ATag);
     if Result.ValueSuccess = nil then
-      Result.Failure(EBindNotFound.Create);
+      Result.Failure(EBindNotFoundException.Create(''));
   except
     on E: Exception do
-      Result.Failure(EBindError.Create(E.Message));
+      Result.Failure(EBindException.Create(E.Message));
   end;
 end;
 
-function TBindService.GetBind<T>: TResultPair<Exception, T>;
+function TBindService.GetBind<T>(const ATag: string): TResultPair<Exception, T>;
 begin
   try
-    Result := FProvider.GetBind<T>;
+    Result := FProvider.GetBind<T>(ATag);
     if Result.ValueSuccess = nil then
-      Result.Failure(EBindNotFound.Create);
+      Result.Failure(EBindNotFoundException.Create(''));
   except
     on E: Exception do
-      Result.Failure(EBindError.Create(E.Message));
+      Result.Failure(EBindException.Create(E.Message));
   end;
 end;
 

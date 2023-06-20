@@ -109,9 +109,7 @@ begin
   if not Assigned(Result.ValueSuccess.ModuleInstance) then
   begin
     Result.ValueSuccess.ModuleInstance := FAppInjector^.Get<TObjectFactory>
-                                                      .CreateInstance(Result.ValueSuccess.Module);
-    // Console delphi
-    DebugPrint(Format('-- %s CREATED', [Result.ValueSuccess.Module.ClassName]));
+                                                       .CreateInstance(Result.ValueSuccess.Module);
   end;
   // Vai aos eventos middlewares se existir
   _RouteMiddleware(Result.ValueSuccess);

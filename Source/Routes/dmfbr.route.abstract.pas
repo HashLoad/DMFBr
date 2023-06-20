@@ -26,7 +26,8 @@ interface
 
 uses
   Generics.Collections,
-  SysUtils;
+  SysUtils,
+  dmfbr.request;
 
 type
   TRouteAbstract = class;
@@ -34,7 +35,7 @@ type
   TRouteMiddleware = class
   public
     class function Before(ARoute: TRouteAbstract): TRouteAbstract; virtual;
-    class function Call: boolean; virtual;
+    class function Call(const AReq: IRouteRequest): boolean; virtual;
     class procedure After(ARoute: TRouteAbstract); virtual;
   end;
 
@@ -119,7 +120,7 @@ begin
   Result := ARoute;
 end;
 
-class function TRouteMiddleware.Call: boolean;
+class function TRouteMiddleware.Call(const AReq: IRouteRequest): boolean;
 begin
   Result := True;
 end;

@@ -42,8 +42,6 @@ type
   public
     procedure CreateModularInjector;
     procedure ExtractInjector<T: class>(const ATag: string = '');
-    function &Get<T: class, constructor>(const ATag: String = ''): T;
-    function &GetInterface<I: IInterface>(const ATag: String = ''): I;
   end;
 
   TCoreInjector = class(TAppInjector)
@@ -191,42 +189,6 @@ var
 begin
   LInjector := TCoreInjector.Create;
   AppInjector^.AddInjector('ModularBr', LInjector);
-end;
-
-function TAppInjector.Get<T>(const ATag: String): T;
-var
-  LItem: TServiceData;
-begin
-  Result := inherited GetTry<T>(ATag);
-  if Result <> nil then
-    Exit;
-  for LItem in GetInstances.Values do
-  begin
-    if LItem.GetInstance is TAppInjector then
-    begin
-      Result := TAppInjector(LItem.GetInstance).GetTry<T>(ATag);
-      if Result <> nil then
-        Exit;
-    end;
-  end;
-end;
-
-function TAppInjector.GetInterface<I>(const ATag: String): I;
-var
-  LItem: TServiceData;
-begin
-  Result := inherited GetInterfaceTry<I>(ATag);
-  if Result <> nil then
-    Exit;
-  for LItem in GetInstances.Values do
-  begin
-    if LItem.GetInstance is TAppInjector then
-    begin
-      Result := TAppInjector(LItem.GetInstance).GetInterfaceTry<I>(ATag);
-      if Result <> nil then
-        Exit;
-    end;
-  end;
 end;
 
 procedure TAppInjector.ExtractInjector<T>(const ATag: string);
