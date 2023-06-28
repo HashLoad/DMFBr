@@ -1,6 +1,6 @@
 <p align="center">DMFBr Framework for Delphi, para construção de aplicativos eficientes e escaláveis.</p>
 <p align="center">
-  <img src="assets/mascote_dmfbr.jfif" alt="super CLI" width="150">
+  <img src="images/mascote_dmfbr.jfif" alt="super CLI" width="150">
 </p>
 
 # Description
