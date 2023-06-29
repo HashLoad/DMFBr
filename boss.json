@@ -9,6 +9,6 @@
 		"github.com/HashLoad/ECLBr": "^1.0.3",
 		"github.com/HashLoad/InjectorBr": "^0.1.8",
 		"github.com/HashLoad/ResultPairBr": "^0.1.8",
-		"github.com/HashLoad/JsonBr": "^1.1.5"
+		"github.com/HashLoad/JSONBr": "^1.1.5"
 	}
 }
