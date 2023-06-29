@@ -4,7 +4,7 @@
 </p>
 
 # Description
-O DMFBr CLI é uma ferramenta de linha de comando que ajuda a inicializar, desenvolver e manter suas aplicações que usa o DMFBr. Ele auxilia de várias maneiras, incluindo a criação da estrutura básica do projeto. Ele incorpora padrões arquiteturais de boas práticas para incentivar a criação de aplicativos bem estruturados.
+O ModularBr é uma biblioteca que oferece uma arquitetura de desenvolvimento modular para aplicações, permitindo a separação de recursos em módulos independentes e interconectados. Com essa arquitetura, é possível obter benefícios como a organização do código-fonte, maior escalabilidade, manutenção mais fácil e clara, testabilidade mais eficiente e um processo de desenvolvimento mais ágil.
 
 # Informations
 [Clique aqui para visitar o site](https://docs-br.com/dmfbr)
