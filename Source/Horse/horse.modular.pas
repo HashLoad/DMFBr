@@ -66,10 +66,6 @@ const
   CONTENT_TYPE = 'application/json; charset=UTF-8';
 var
   LResult: TResultPair<Exception, TRouteAbstract>;
-  LAuthorization: string;
-  LUserName: string;
-  LPassword: string;
-  LToken: string;
   LRequest: IRouteRequest;
 begin
   // Tratamento para ignorar rotas de documentação swagger nesse middleware.
