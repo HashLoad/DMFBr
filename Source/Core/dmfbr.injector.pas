@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi
+         DMFBr - Development Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -19,10 +19,11 @@
 }
 
 {
-  @abstract(DMFBr Framework)
+  @abstract(DMFBr Framework for Delphi)
   @created(01 Mai 2023)
   @author(Isaque Pinheiro <isaquesp@gmail.com>)
-  @author(Site : https://www.isaquepinheiro.com.br)
+  @homepage(https://www.isaquepinheiro.com.br)
+  @documentation(https://dmfbr-en.docs-br.com)
 }
 
 unit dmfbr.injector;

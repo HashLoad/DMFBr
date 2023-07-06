@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi
+         DMFBr - Development Modular Framework for Delphi
 
                    Copyright (c) 2023, Isaque Pinheiro
                           All rights reserved.
@@ -24,21 +24,77 @@ unit dmfbr.route.handler;
 interface
 
 uses
-  SysUtils;
+  Rtti,
+  SysUtils,
+  dmfbr.injector;
 
 type
   TRouteHandler = class abstract
+  private
+    FAppInjector: PAppInjector;
+    procedure _RegisterRouteHandle(const ARoute: string);
   protected
     procedure RegisterRoutes; virtual; abstract;
   public
     constructor Create; overload; virtual;
+    function RouteGet(const ARoute: string): TRouteHandler; virtual;
+    function RoutePost(const ARoute: string): TRouteHandler; virtual;
+    function RoutePut(const ARoute: string): TRouteHandler; virtual;
+    function RouteDelete(const ARoute: string): TRouteHandler; virtual;
+    function RoutePatch(const ARoute: string): TRouteHandler; virtual;
   end;
 
 implementation
 
+uses
+  dmfbr.register,
+  dmfbr.exception;
+
 constructor TRouteHandler.Create;
 begin
+  FAppInjector := AppInjector;
+  if not Assigned(FAppInjector) then
+    raise EAppInjector.Create;
   RegisterRoutes;
+end;
+
+function TRouteHandler.RouteDelete(const ARoute: string): TRouteHandler;
+begin
+  Result := Self;
+  _RegisterRouteHandle(ARoute);
+end;
+
+function TRouteHandler.RouteGet(const ARoute: string): TRouteHandler;
+begin
+  Result := Self;
+  _RegisterRouteHandle(ARoute);
+end;
+
+function TRouteHandler.RoutePatch(const ARoute: string): TRouteHandler;
+begin
+  Result := Self;
+  _RegisterRouteHandle(ARoute);
+end;
+
+function TRouteHandler.RoutePost(const ARoute: string): TRouteHandler;
+begin
+  Result := Self;
+  _RegisterRouteHandle(ARoute);
+end;
+
+function TRouteHandler.RoutePut(const ARoute: string): TRouteHandler;
+begin
+  Result := Self;
+  _RegisterRouteHandle(ARoute);
+end;
+
+procedure TRouteHandler._RegisterRouteHandle(const ARoute: string);
+begin
+  if not FAppInjector^.Get<TRegister>.ResgisterContainsKey(Self.ClassName) then
+    exit;
+  if FAppInjector^.Get<TRegister>.RouteContainsKey(ARoute) then
+    exit;
+  FAppInjector^.Get<TRegister>.Add(ARoute, Self.ClassName);
 end;
 
 end.

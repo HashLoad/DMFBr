@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi
+         DMFBr - Development Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -19,10 +19,11 @@
 }
 
 {
-  @abstract(DMFBr Framework)
+  @abstract(DMFBr Framework for Delphi)
   @created(01 Mai 2023)
   @author(Isaque Pinheiro <isaquesp@gmail.com>)
-  @author(Site : https://www.isaquepinheiro.com.br)
+  @homepage(https://www.isaquepinheiro.com.br)
+  @documentation(https://dmfbr-en.docs-br.com)
 }
 
 unit dmfbr.modular;
@@ -43,7 +44,9 @@ uses
   dmfbr.bind.service,
   dmfbr.injector,
   dmfbr.exception,
-  dmfbr.request;
+  dmfbr.register,
+  dmfbr.request,
+  dmfbr.validation.interfaces;
 
 type
   TModularBr = class sealed
@@ -56,6 +59,8 @@ type
     FBindService: TBindService;
     FModuleStarted: boolean;
     FListener: TListener;
+    FRequest: IRouteRequest;
+    FRegister: TRegister;
     procedure _ResolveDisposeRouteModule(const APath: string);
   public
     constructor Create;
@@ -63,15 +68,17 @@ type
     procedure IncludeModuleService(const AService: TModuleService);
     procedure IncludeBindService(const AService: TBindService);
     procedure IncludeRouteParser(const ARouteParse: TRouteParse);
-    procedure Init(const AModule: TModule;
-      const AListener: TListener = nil;
-      const AInitialRoutePath: string = '/');
+    function Start(const AModule: TModule; const AListener: TListener = nil;
+      const AInitialRoutePath: string = '/'): TModularBr;
     procedure Finalize;
+    procedure DisposeRouteModule(const APath: String);
+    procedure UsePipes(const AValidationPipe: IValidationPipe);
+    procedure RegisterRouteHandler(const ARouteHandler: TClass);
     function LoadRouteModule(const APath: string;
       const AReq: IRouteRequest = nil): TResultPair<Exception, TRouteAbstract>;
-    procedure DisposeRouteModule(const APath: String);
     function Get<T: class, constructor>(ATag: string = ''): T;
     function GetInterface<I: IInterface>(ATag: string = ''): I;
+    function Request: IRouteRequest;
   end;
 
 function Modular: TModularBr;
@@ -91,6 +98,9 @@ begin
   if not Assigned(FAppInjector) then
     raise EAppInjector.Create;
   FModuleStarted := false;
+  //
+  FRegister := TRegister.Create;
+  FAppInjector.AddInstance<TRegister>(FRegister);
 end;
 
 destructor TModularBr.Destroy;
@@ -156,8 +166,8 @@ begin
   FRouteParse := ARouteParse;
 end;
 
-procedure TModularBr.Init(const AModule: TModule;
-  const AListener: TListener; const AInitialRoutePath: String);
+function TModularBr.Start(const AModule: TModule;
+  const AListener: TListener; const AInitialRoutePath: String): TModularBr;
 begin
   if FModuleStarted then
     raise EModuleStartedException.CreateFmt('', [AModule.ClassName]);
@@ -166,15 +176,53 @@ begin
   FAppModule := AModule;
   FModuleService.Start(AModule, AInitialRoutePath);
   FModuleStarted := true;
+  Result := Self;
   {$IFDEF DEBUG}
   DebugPrint(Format('[%s] Starting DMFBr application', ['ModularInit']));
   {$ENDIF}
 end;
 
+procedure TModularBr.UsePipes(const AValidationPipe: IValidationPipe);
+begin
+  FRegister.UsePipes(AValidationPipe);
+end;
+
 function TModularBr.LoadRouteModule(const APath: string;
   const AReq: IRouteRequest): TResultPair<Exception, TRouteAbstract>;
+var
+  LRouteHandle: TClass;
 begin
-  Result := FRouteParse.SelectRoute(APath, AReq, FListener);
+  FRequest := AReq;
+  try
+    LRouteHandle := FRegister.FindRecord(APath);
+    if LRouteHandle <> nil then
+    begin
+      if not FRegister.IsValidationPipe then
+      begin
+        Result.Failure(EBadRequestException.Create('Use the "UsePipes" command followed by "TValidationPipe.Create" to enable global validation pipes.'));
+        exit;
+      end;
+      FRegister.Pipe.Validate(LRouteHandle, FRequest);
+      if FRegister.Pipe.IsMessages then
+      begin
+        Result.Failure(EBadRequestException.Create(FRegister.Pipe.BuildMessages));
+        exit;
+      end;
+    end;
+    Result := FRouteParse.SelectRoute(APath, AReq, FListener);
+  finally
+    FRequest := nil;
+  end;
+end;
+
+procedure TModularBr.RegisterRouteHandler(const ARouteHandler: TClass);
+begin
+  FRegister.Add(ARouteHandler);
+end;
+
+function TModularBr.Request: IRouteRequest;
+begin
+  Result := FRequest;
 end;
 
 procedure TModularBr.DisposeRouteModule(const APath: String);
@@ -184,7 +232,7 @@ end;
 
 procedure TModularBr.Finalize;
 begin
-  // Nessa ordem deve ser.
+  // Do not change the order.
   FAppModule.Free;
   FAppInjector^.ExtractInjector<TAppInjector>('ModularBr');
 end;

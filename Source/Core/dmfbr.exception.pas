@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi
+         DMFBr - Development Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -19,10 +19,11 @@
 }
 
 {
-  @abstract(DMFBr Framework)
+  @abstract(DMFBr Framework for Delphi)
   @created(01 Mai 2023)
   @author(Isaque Pinheiro <isaquesp@gmail.com>)
-  @author(Site : https://www.isaquepinheiro.com.br)
+  @homepage(https://www.isaquepinheiro.com.br)
+  @documentation(https://dmfbr-en.docs-br.com)
 }
 
 unit dmfbr.exception;
@@ -135,14 +136,9 @@ end;
 constructor ERouteNotFoundException.Create(const Msg: string);
 var
   LMsg: string;
-  LMsgJson: string;
 begin
-  LMsg := ifThen(Msg = '', cMSG_DEFAULT, Msg);
-  LMsgJson := '{' +
-              '  "statusCode": 404' +
-              '  "message": "' + LMsg + '"' +
-              '}';
-  inherited Create(LMsgJson);
+  LMsg := Format('{"statusCode": "404", "message": %s, "error": "Not Found"}', [cMSG_DEFAULT]);
+  inherited Create(ifThen(Msg = '', LMsg, Msg));
   Status := 404;
 end;
 
@@ -160,14 +156,9 @@ end;
 constructor EBindException.Create(const Msg: string);
 var
   LMsg: string;
-  LMsgJson: string;
 begin
-  LMsg := ifThen(Msg = '', cMSG_DEFAULT, Msg);
-  LMsgJson := '{' +
-              '  "statusCode": 500' +
-              '  "message": "' + LMsg + '"' +
-              '}';
-  inherited Create(LMsgJson);
+  LMsg := Format('{"statusCode": "500", "message": %s, "error": "Internal Server Error"}', [cMSG_DEFAULT]);
+  inherited Create(ifThen(Msg = '', LMsg, Msg));
   Status := 500;
 end;
 
@@ -184,14 +175,9 @@ end;
 constructor EUnauthorizedException.Create(const Msg: string);
 var
   LMsg: string;
-  LMsgJson: string;
 begin
-  LMsg := ifThen(Msg = '', cMSG_DEFAULT, Msg);
-  LMsgJson := '{' +
-              '  "statusCode": 401' +
-              '  "message": "' + LMsg + '"' +
-              '}';
-  inherited Create(LMsgJson);
+  LMsg := Format('{"statusCode": "401", "message": %s, "error": "Unauthorized"}', [cMSG_DEFAULT]);
+  inherited Create(ifThen(Msg = '', LMsg, Msg));
   Status := 401;
 end;
 
@@ -209,14 +195,9 @@ end;
 constructor EBindNotFoundException.Create(const Msg: string);
 var
   LMsg: string;
-  LMsgJson: string;
 begin
-  LMsg := ifThen(Msg = '', cMSG_DEFAULT, Msg);
-  LMsgJson := '{' +
-              '  "statusCode": 404' +
-              '  "message": "' + LMsg + '"' +
-              '}';
-  inherited Create(LMsgJson);
+  LMsg := Format('{"statusCode": "404", "message": %s, "error": "Not Found"}', [cMSG_DEFAULT]);
+  inherited Create(ifThen(Msg = '', LMsg, Msg));
   Status := 404;
 end;
 
@@ -234,14 +215,9 @@ end;
 constructor EModuleStartedException.Create(const Msg: string);
 var
   LMsg: string;
-  LMsgJson: string;
 begin
-  LMsg := ifThen(Msg = '', cMSG_DEFAULT, Msg);
-  LMsgJson := '{' +
-              '  "statusCode": 500' +
-              '  "message": "' + LMsg + '"' +
-              '}';
-  inherited Create(LMsgJson);
+  LMsg := Format('{"statusCode": "500", "message": %s, "error": "Internal Server Error"}', [cMSG_DEFAULT]);
+  inherited Create(ifThen(Msg = '', LMsg, Msg));
   Status := 500;
 end;
 
@@ -274,14 +250,9 @@ end;
 constructor EModuleStartedInitException.Create(const Msg: string);
 var
   LMsg: string;
-  LMsgJson: string;
 begin
-  LMsg := ifThen(Msg = '', cMSG_DEFAULT, Msg);
-  LMsgJson := '{' +
-              '  "statusCode": 500' +
-              '  "message": "' + LMsg + '"' +
-              '}';
-  inherited Create(LMsgJson);
+  LMsg := Format('{"statusCode": "500", "message": %s, "error": "Internal Server Error"}', [cMSG_DEFAULT]);
+  inherited Create(ifThen(Msg = '', LMsg, Msg));
   Status := 500;
 end;
 
@@ -306,15 +277,10 @@ end;
 constructor EBadRequestException.Create(const Msg: string);
 var
   LMsg: string;
-  LMsgJson: string;
 begin
-  LMsg := ifThen(Msg = '', cMSG_DEFAULT, Msg);
-  LMsgJson := '{' +
-              '  "statusCode": 500' +
-              '  "message": "' + LMsg + '"' +
-              '}';
-  inherited Create(LMsgJson);
-  Status := 500;
+  LMsg := Format('{"statusCode": "400", "message": %s, "error": "Bad Request"}', [cMSG_DEFAULT]);
+  inherited Create(ifThen(Msg = '', LMsg, Msg));
+  Status := 400;
 end;
 
 constructor EBadRequestException.CreateFmt(const Msg: string;
