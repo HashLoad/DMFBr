@@ -1,5 +1,5 @@
 {
-         DMFBr - Desenvolvimento Modular Framework for Delphi
+         DMFBr - Development Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -19,10 +19,11 @@
 }
 
 {
-  @abstract(DMFBr Framework)
+  @abstract(DMFBr Framework for Delphi)
   @created(01 Mai 2023)
   @author(Isaque Pinheiro <isaquesp@gmail.com>)
-  @author(Site : https://www.isaquepinheiro.com.br)
+  @homepage(https://www.isaquepinheiro.com.br)
+  @documentation(https://dmfbr-en.docs-br.com)
 }
 
 unit horse.modular;
@@ -32,28 +33,33 @@ interface
 uses
   SysUtils,
   StrUtils,
+  TypInfo,
   Web.HTTPApp,
   dmfbr.module,
   dmfbr.modular,
   dmfbr.exception,
   dmfbr.request,
   result.pair,
-  Horse;
+  Horse,
+  dmfbr.validation.interfaces;
 
+function _ResolverRouteRequest(const Req: THorseRequest): IRouteRequest;
 function HorseModular(const AppModule: TModule): THorseCallback; overload;
 function HorseModular(const ACharset: string): THorseCallback; overload;
 procedure Middleware(Req: THorseRequest; Res: THorseResponse; Next: TNextProc);
-function _ResolverRouteRequest(const Req: THorseRequest): IRouteRequest;
+procedure UsePipes(const AValidationPipe: IValidationPipe);
 
 implementation
 
-var
-  Charset: string;
-
 function HorseModular(const AppModule: TModule): THorseCallback;
 begin
-  Modular.Init(AppModule);
+  Modular.Start(AppModule);
   Result := HorseModular('UTF-8');
+end;
+
+procedure UsePipes(const AValidationPipe: IValidationPipe);
+begin
+  Modular.UsePipes(AValidationPipe);
 end;
 
 function HorseModular(const ACharset: string): THorseCallback;
@@ -68,11 +74,11 @@ var
   LResult: TResultPair<Exception, TRouteAbstract>;
   LRequest: IRouteRequest;
 begin
-  // Tratamento para ignorar rotas de documentação swagger nesse middleware.
+  // Treatment to ignore Swagger documentation routes in this middleware.
   if (Pos(LowerCase('swagger'), LowerCase(Req.RawWebRequest.PathInfo)) > 0) or
      (Pos(LowerCase('favicon.ico'), LowerCase(Req.RawWebRequest.PathInfo)) > 0) then
     exit;
-  // Inicia rota e binds
+  // Route initialization and bindings.
   if (Req.MethodType in [mtGet, mtPost, mtPut, mtPatch, mtDelete]) then
   begin
     LRequest := _ResolverRouteRequest(Req);
@@ -96,8 +102,8 @@ begin
       end,
       procedure (Route: TRouteAbstract)
       begin
-        // A Rota se encontrada, veio até aqui,
-        // mas não precisamos de fazer nada com ela, o modular trata tudo.
+        // If the route is found, it has come this far,
+        // but we don't need to do anything with it, the module handles everything.
       end);
   end;
   try
@@ -128,23 +134,21 @@ begin
 end;
 
 function _ResolverRouteRequest(const Req: THorseRequest): IRouteRequest;
-var
-  LRequest: IRouteRequest;
 begin
-  Result := nil;
   try
-    LRequest := TRouteRequest.Create;
-    LRequest.SetHeader(Req.Headers['Authorization']);
-    LRequest.SetBody(Req.Body);
-    LRequest.SetParams(Req.Params.Content);
-    LRequest.SetQuerys(Req.Query.Content);
-    LRequest.SetHost(Req.RawWebRequest.Host);
-    LRequest.SetContentType(Req.RawWebRequest.ContentType);
-    LRequest.SetPathInfo(Req.RawWebRequest.PathInfo);
+    Result := TRouteRequest.Create(Req.Headers.Content,
+                                   Req.Params.Content,
+                                   Req.Query.Content,
+                                   Req.Body,
+                                   Req.RawWebRequest.Host,
+                                   Req.RawWebRequest.ContentType,
+                                   Req.RawWebRequest.Method,
+                                   Req.RawWebRequest.PathInfo,
+                                   Req.RawWebRequest.ServerPort);
   except
     exit;
   end;
-  Result := LRequest;
 end;
 
 end.
+

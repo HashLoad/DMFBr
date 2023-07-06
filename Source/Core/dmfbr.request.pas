@@ -5,7 +5,9 @@ interface
 uses
   SysUtils,
   Classes,
-  EncdDecd;
+  EncdDecd,
+  Generics.Collections,
+  dmfbr.request.data;
 
 type
   TAuth = class
@@ -26,61 +28,64 @@ type
 
   IRouteRequest = interface
     ['{F344E29D-8FF3-4F39-BC8C-53EE130E02D4}']
-    procedure SetHeader(const AHeader: string);
+    procedure SetObject(const AObject: TObject);
     procedure SetBody(const ABody: string);
-    procedure SetParams(const AParams: TStrings);
-    procedure SetQuerys(const AQueryFields: TStrings);
-    procedure SetContentType(const AContentType: string);
-    procedure SetHost(const AHost: string);
-    procedure SetPathInfo(const APathInfo: string);
-    function Header: string;
+    function Header: TRequestData;
+    function Querys: TRequestData;
+    function Params: TRequestData;
+    function Method: string;
     function Body: string;
-    function QueryFields: TStrings;
-    function Params: TStrings;
+    function URL: string;
     function Host: string;
+    function Port: integer;
     function ContentType: string;
-    function PathInfo: string;
     function Username: string;
     function Password: string;
     function Token: string;
+    function AsObject: TObject;
   end;
 
   TRouteRequest = class(TInterfacedObject, IRouteRequest)
   private
     class var FAuth: TAuth;
+    FObject: TObject;
     FBearer: TBearer;
-    FHeader: string;
-    FParams: TStrings;
-    FQueryFields: TStrings;
+    FHeader: TRequestData;
+    FParams: TRequestData;
+    FQuerys: TRequestData;
+    FMethod: string;
+    FURL: string;
     FBody: string;
     FHost: string;
+    FPort: integer;
     FContentType: string;
-    FPathInfo: string;
   public
-    constructor Create;
+    constructor Create; overload;
+    constructor Create(const AHeader: TStrings; const AParams: TStrings;
+      const AQuerys: TStrings; const ABody: string; const AHost: string;
+      const AContentType: string; const AMethod: string;
+      const AURL: string; const APort: integer); overload;
     destructor Destroy; override;
-    procedure SetHeader(const AHeader: string);
+    procedure SetObject(const AObject: TObject);
     procedure SetBody(const ABody: string);
-    procedure SetParams(const AParams: TStrings);
-    procedure SetQuerys(const AQueryFields: TStrings);
-    procedure SetContentType(const AContentType: string);
-    procedure SetHost(const AHost: string);
-    procedure SetPathInfo(const APathInfo: string);
-    function Header: string;
+    function Header: TRequestData;
+    function Params: TRequestData;
+    function Querys: TRequestData;
     function Body: string;
-    function QueryFields: TStrings;
-    function Params: TStrings;
     function Host: string;
     function ContentType: string;
-    function PathInfo: string;
+    function Method: string;
+    function URL: string;
+    function Port: integer;
     function Username: string;
     function Password: string;
     function Token: string;
+    function AsObject: TObject;
   end;
 
 implementation
 
-{ TDMFRequest }
+{ TRouteRequest }
 
 function TRouteRequest.Body: string;
 begin
@@ -92,18 +97,43 @@ begin
   Result := FContentType;
 end;
 
-constructor TRouteRequest.Create;
+constructor TRouteRequest.Create(const AHeader: TStrings; const AParams: TStrings;
+  const AQuerys: TStrings; const ABody: string; const AHost: string;
+  const AContentType: string; const AMethod: string;
+  const AURL: string; const APort: integer);
 begin
   FBearer := TBearer.Create;
+  FHeader := TRequestData.Create;
+  FParams := TRequestData.Create;
+  FQuerys := TRequestData.Create;
+  FHeader.Assign(AHeader);
+  FParams.Assign(AParams);
+  FQuerys.Assign(AQuerys);
+  FBody := ABody;
+  FHost := AHost;
+  FContentType := AContentType;
+  FMethod := AMethod;
+  FURL := AURL;
+  FPort := APort;
+end;
+
+constructor TRouteRequest.Create;
+begin
+
 end;
 
 destructor TRouteRequest.Destroy;
 begin
   FBearer.Free;
+  FHeader.Free;
+  FParams.Free;
+  FQuerys.Free;
+  if Assigned(FObject) then
+    FObject.Free;
   inherited;
 end;
 
-function TRouteRequest.Header: string;
+function TRouteRequest.Header: TRequestData;
 begin
   Result := FHeader;
 end;
@@ -113,7 +143,17 @@ begin
   Result := FHost;
 end;
 
-function TRouteRequest.Params: TStrings;
+function TRouteRequest.Method: string;
+begin
+  Result := FMethod;
+end;
+
+function TRouteRequest.AsObject: TObject;
+begin
+  Result := FObject;
+end;
+
+function TRouteRequest.Params: TRequestData;
 begin
   Result := FParams;
 end;
@@ -123,39 +163,14 @@ begin
   Result := FAuth.Password;
 end;
 
-function TRouteRequest.PathInfo: string;
+function TRouteRequest.Port: integer;
 begin
-  Result := FPathInfo;
+  Result := FPort;
 end;
 
-function TRouteRequest.QueryFields: TStrings;
+function TRouteRequest.Querys: TRequestData;
 begin
-  Result := FQueryFields;
-end;
-
-procedure TRouteRequest.SetParams(const AParams: TStrings);
-begin
-  FParams := AParams;
-end;
-
-procedure TRouteRequest.SetPathInfo(const APathInfo: string);
-begin
-  FPathInfo := APathInfo;
-end;
-
-procedure TRouteRequest.SetQuerys(const AQueryFields: TStrings);
-begin
-  FQueryFields := AQueryFields;
-end;
-
-function TRouteRequest.Token: string;
-begin
-  Result := FBearer.Token;
-end;
-
-function TRouteRequest.Username: string;
-begin
-  Result := FAuth.Username;
+  Result := FQuerys;
 end;
 
 procedure TRouteRequest.SetBody(const ABody: string);
@@ -163,38 +178,24 @@ begin
   FBody := ABody;
 end;
 
-procedure TRouteRequest.SetContentType(const AContentType: string);
+procedure TRouteRequest.SetObject(const AObject: TObject);
 begin
-  FContentType := AContentType;
+  FObject := AObject;
 end;
 
-procedure TRouteRequest.SetHeader(const AHeader: string);
-var
-  LBase64Auth: string;
-  LDecodedAuth: string;
-  LAuthBasic: string;
-  LAuthBearer: string;
+function TRouteRequest.Token: string;
 begin
-  FHeader := AHeader;
-  LAuthBasic := 'Basic';
-  LAuthBearer := 'Bearer';
-  if Pos(LAuthBasic, FHeader) > 0 then
-  begin
-    LBase64Auth := Copy(FHeader, Pos(LAuthBasic, FHeader) + 6, Length(FHeader));
-    LDecodedAuth := DecodeString(LBase64Auth);
-    FAuth.Username := Copy(LDecodedAuth, 1, Pos(':', LDecodedAuth) - 1);
-    FAuth.Password := Copy(LDecodedAuth, Pos(':', LDecodedAuth) + 1, Length(LDecodedAuth));
-  end
-  else if Pos(LAuthBearer, FHeader) > 0 then
-  begin
-    LDecodedAuth := Copy(FHeader, Pos(LAuthBearer, FHeader) + Length(LAuthBearer) + 1, Length(FHeader));
-    FBearer.Token := Trim(LDecodedAuth);
-  end;
+  Result := FBearer.Token;
 end;
 
-procedure TRouteRequest.SetHost(const AHost: string);
+function TRouteRequest.URL: string;
 begin
-  FHost := AHost;
+  Result := FURL;
+end;
+
+function TRouteRequest.Username: string;
+begin
+  Result := FAuth.Username;
 end;
 
 initialization
