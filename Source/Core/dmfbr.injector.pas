@@ -77,7 +77,8 @@ uses
   dmfbr.route.parse,
   dmfbr.route.service,
   dmfbr.route.manager,
-  dmfbr.modular;
+  dmfbr.modular,
+  dmfbr.register;
 
 { TCoreInjector }
 
@@ -187,9 +188,13 @@ end;
 procedure TAppInjector.CreateModularInjector;
 var
   LInjector: TCoreInjector;
+  LRegister: TRegister;
 begin
   LInjector := TCoreInjector.Create;
   AppInjector^.AddInjector('ModularBr', LInjector);
+
+  LRegister := TRegister.Create;
+  AppInjector^.AddInstance<TRegister>(LRegister);
 end;
 
 procedure TAppInjector.ExtractInjector<T>(const ATag: string);

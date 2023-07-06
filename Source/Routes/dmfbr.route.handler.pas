@@ -89,12 +89,17 @@ begin
 end;
 
 procedure TRouteHandler._RegisterRouteHandle(const ARoute: string);
+var
+  LRegister: TRegister;
 begin
-  if not FAppInjector^.Get<TRegister>.ResgisterContainsKey(Self.ClassName) then
+  LRegister := FAppInjector^.Get<TRegister>;
+  if LRegister = nil then
     exit;
-  if FAppInjector^.Get<TRegister>.RouteContainsKey(ARoute) then
+  if not LRegister.ResgisterContainsKey(Self.ClassName) then
     exit;
-  FAppInjector^.Get<TRegister>.Add(ARoute, Self.ClassName);
+  if LRegister.RouteContainsKey(ARoute) then
+    exit;
+  LRegister.Add(ARoute, Self.ClassName);
 end;
 
 end.

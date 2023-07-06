@@ -98,9 +98,7 @@ begin
   if not Assigned(FAppInjector) then
     raise EAppInjector.Create;
   FModuleStarted := false;
-  //
-  FRegister := TRegister.Create;
-  FAppInjector.AddInstance<TRegister>(FRegister);
+  FRegister := FAppInjector^.Get<TRegister>;
 end;
 
 destructor TModularBr.Destroy;
