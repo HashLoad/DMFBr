@@ -16,6 +16,7 @@ type
     constructor Create(const AValueMax: Extended; const AMessage: string = ''); reintroduce;
     function ValueMax: TValue;
     function Validation: TValidation; override;
+    function Params: TArray<TValue>; override;
   end;
 
 implementation
@@ -32,6 +33,11 @@ end;
 function IsMaxAttribute.ValueMax: TValue;
 begin
   Result := FValueMax;
+end;
+
+function IsMaxAttribute.Params: TArray<TValue>;
+begin
+  Result := [FValueMax];
 end;
 
 function IsMaxAttribute.Validation: TValidation;
