@@ -1,5 +1,5 @@
 {
-         DMFBr - Development Modular Framework for Delphi
+             DMFBr - Development Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -88,45 +88,40 @@ implementation
 
 { TBind<T> }
 
-constructor TBind<T>.Create(const AOnCreate: TProc<T>;
-      const AOnDestroy: TProc<T>;
-      const AOnConstructorParams: TConstructorCallback);
+constructor TBind<T>.Create(const AOnCreate: TProc<T>; const AOnDestroy: TProc<T>;
+  const AOnConstructorParams: TConstructorCallback);
 begin
   FOnCreate := AOnCreate;
   FOnDestroy := AOnDestroy;
   FOnParams := AOnConstructorParams;
 end;
 
-class function TBind<T>.Factory(const AOnCreate: TProc<T>;
-      const AOnDestroy: TProc<T>;
-      const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
+class function TBind<T>.Factory(const AOnCreate: TProc<T>; const AOnDestroy: TProc<T>;
+  const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
 begin
   Result := TBind<TObject>(TFactoryBind<T>.Create(AOnCreate,
                                                   AOnDestroy,
                                                   AOnConstructorParams));
 end;
 
-class function TBind<T>.Singleton(const AOnCreate: TProc<T>;
-      const AOnDestroy: TProc<T>;
-      const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
+class function TBind<T>.Singleton(const AOnCreate: TProc<T>; const AOnDestroy: TProc<T>;
+  const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
 begin
   Result := TBind<TObject>(TSingletonBind<T>.Create(AOnCreate,
                                                     AOnDestroy,
                                                     AOnConstructorParams));
 end;
 
-class function TBind<T>.SingletonInterface<I>(const AOnCreate: TProc<T>;
-      const AOnDestroy: TProc<T>;
-      const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
+class function TBind<T>.SingletonInterface<I>(const AOnCreate: TProc<T>; const AOnDestroy: TProc<T>;
+  const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
 begin
   Result := TBind<TObject>(TSingletonInterfaceBind<I, T>.Create(AOnCreate,
                                                                 AOnDestroy,
                                                                 AOnConstructorParams));
 end;
 
-class function TBind<T>.SingletonLazy(const AOnCreate: TProc<T>;
-      const AOnDestroy: TProc<T>;
-      const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
+class function TBind<T>.SingletonLazy(const AOnCreate: TProc<T>; const AOnDestroy: TProc<T>;
+  const AOnConstructorParams: TConstructorCallback): TBind<TObject>;
 begin
   Result := TBind<TObject>(TSingletonLazyBind<T>.Create(AOnCreate,
                                                         AOnDestroy,
@@ -161,13 +156,12 @@ end;
 
 { TSingletonInterfaceBind<T> }
 
-procedure TSingletonInterfaceBind<I, T>.IncludeInjector(
-  const AAppInjector: TAppInjector);
+procedure TSingletonInterfaceBind<I, T>.IncludeInjector(const AAppInjector: TAppInjector);
 begin
   AAppInjector.SingletonInterface<I, T>('', FOnCreate, FOnDestroy, FOnParams);
 end;
 
-{ TInstanceBind<I, T> }
+{ TAddInstanceBind<T> }
 
 constructor TAddInstanceBind<T>.Create(const AInstance: TObject);
 begin
@@ -180,3 +174,4 @@ begin
 end;
 
 end.
+

@@ -16,6 +16,7 @@ type
     constructor Create(const AValueMin: Extended; const AMessage: string = ''); reintroduce;
     function ValueMin: TValue;
     function Validation: TValidation; override;
+    function Params: TArray<TValue>; override;
   end;
 
 implementation
@@ -27,6 +28,11 @@ begin
   inherited Create(AMessage);
   FTagName := 'IsMin';
   FValueMin := AValueMin;
+end;
+
+function IsMinAttribute.Params: TArray<TValue>;
+begin
+  Result := [FValueMin];
 end;
 
 function IsMinAttribute.Validation: TValidation;

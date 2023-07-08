@@ -1,5 +1,5 @@
 {
-         DMFBr - Development Modular Framework for Delphi
+             DMFBr - Development Modular Framework for Delphi
 
 
                    Copyright (c) 2023, Isaque Pinheiro
@@ -58,9 +58,9 @@ type
     FCurrentPath: String;
     FRouteManager: TRouteManager;
     FRequest: IRouteRequest;
-    procedure _AddModuleBind(const AModule: TModuleAbstract;
+    procedure _AddModuleBinds(const AModule: TModuleAbstract;
       const AInjector: TAppInjector);
-    procedure _AddExportedModuleBind(const AModule: TModuleAbstract;
+    procedure _AddExportedModuleBinds(const AModule: TModuleAbstract;
       const AInjector: TAppInjector);
     procedure _AddModuleImportsBind(const AModule: TModuleAbstract;
       const AInjector: TAppInjector);
@@ -113,7 +113,7 @@ begin
   FAppInjector^.ExtractInjector<T>(ATag);
 end;
 
-procedure TTracker._AddModuleBind(const AModule: TModuleAbstract;
+procedure TTracker._AddModuleBinds(const AModule: TModuleAbstract;
   const AInjector: TAppInjector);
 var
   LBind: TBind<TObject>;
@@ -125,14 +125,16 @@ begin
   end;
 end;
 
-procedure TTracker._AddExportedModuleBind(const AModule: TModuleAbstract;
+procedure TTracker._AddExportedModuleBinds(const AModule: TModuleAbstract;
   const AInjector: TAppInjector);
 var
   LBind: TBind<TObject>;
+  LExportedBinds: TExportedBinds;
 begin
-  if Length(AModule.ExportedBinds) = 0 then
+  LExportedBinds := AModule.ExportedBinds;
+  if Length(LExportedBinds) = 0 then
     exit;
-  for LBind in AModule.ExportedBinds do
+  for LBind in LExportedBinds do
   begin
     LBind.IncludeInjector(AInjector);
     LBind.Free;
@@ -144,16 +146,16 @@ procedure TTracker._AddModuleImportsBind(const AModule: TModuleAbstract;
 var
   LModule: TClass;
 begin
-  _AddExportedModuleBind(AModule, AInjector);
+  _AddExportedModuleBinds(AModule, AInjector);
   if Length(AModule.Imports) = 0 then
     exit;
   for LModule in AModule.Imports do
     _ResolverImports(LModule, AInjector);
 end;
 
-procedure TTracker._AddRoute(const ARoute: TRouteAbstract; const AParent: String);
+procedure TTracker._AddRoute(const ARoute: TRouteAbstract; const AParent: string);
 var
-  LPath: String;
+  LPath: string;
 begin
   LPath := FRouteManager.RemoveSuffix(LowerCase(ARoute.Path));
   // Lista de Rotas
@@ -214,13 +216,14 @@ var
   LModule: TClass;
 begin
   // O Bind dos módulos são efetuados por rota, se várias rotas usarem o mesmo
-  // módulo, deve gerar somente um injector para o módulo.
+  // módulo, deve gerar somente um injector para o módulo, independente de
+  // quantas rotas chama-lo.
   LInjector := FAppInjector^.Get<TAppInjector>(AModule.ClassName);
   if LInjector <> nil then
-    Exit;
+    exit;
   // Injector do Modulo
   LInjector := _CreateInjector;
-  _AddModuleBind(AModule, LInjector);
+  _AddModuleBinds(AModule, LInjector);
   {$IFDEF DEBUG}
   DebugPrint(Format('[InstanceLoad] %s dependencies initialized', [AModule.ClassName]));
   {$ENDIF}
@@ -246,7 +249,6 @@ var
 begin
   // Request atualizada a cada requisição, para ser usada internamente
   FRequest := AArgs.Request;
-  //
   Result := nil;
   LEndPoint := FRouteManager.FindEndpoint(AArgs.Path);
   if LEndPoint = '' then
@@ -292,7 +294,7 @@ begin
   for LKey in FRoutes.Keys do
   begin
     if LKey.Schema <> AModuleName then
-      Continue;
+      continue;
     // Remove os endpoints desse módulo da lista.
     _RemoveEndPoint(LKey.Path);
     // Remove todas as rotas/sub-rotas do módulo que está sendo destuído.
@@ -315,7 +317,7 @@ var
 begin
   LInstance := _CreateModule(AModule);
   if LInstance = nil then
-    Exit;
+    exit;
   try
     _AddModuleImportsBind(LInstance, AInjector);
     {$IFDEF DEBUG}
@@ -341,10 +343,11 @@ begin
     LMiddleware := ARoute.Middlewares[LFor];
     LBefore := LContext.GetType(LMiddleware).GetMethod('Before');
     if not Assigned(LBefore) then
-      Continue;
+      continue;
     LParam := TValue.From(ARoute);
     Result := LBefore.Invoke(LMiddleware, [LParam]).AsType<TRouteAbstract>;
   end;
 end;
 
 end.
+

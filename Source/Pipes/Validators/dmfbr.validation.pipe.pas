@@ -55,7 +55,6 @@ type
       const ARequest: IRouteRequest);
     procedure _MapPipes(const AClass: TClass; const ARequest: IRouteRequest);
     procedure _MapValidation(const AClass: TClass; const ARequest: IRouteRequest);
-    function _GetValues(const AKey: string; const ADecorator: TCustomAttribute): TValue;
     procedure _ResolveBody(const ADecorator: TCustomAttribute; const ARequest: IRouteRequest);
     procedure _ResolveParams(const ADecorator: TCustomAttribute; const ARequest: IRouteRequest);
     procedure _ResolveQuerys(const ADecorator: TCustomAttribute; const ARequest: IRouteRequest);
@@ -71,7 +70,8 @@ implementation
 
 uses
   eclbr.interfaces,
-  eclbr.objects;
+  eclbr.objects,
+  eclbr.sysutils;
 
 { TValidationPipe }
 
@@ -234,19 +234,6 @@ begin
   _ResolvePayLoads(LRttiType, ARequest);
 end;
 
-function TValidationPipe._GetValues(const AKey: string;
-  const ADecorator: TCustomAttribute): TValue;
-begin
-  Result := TValue.Empty;
-  // IsMaxAttribute
-  if (ADecorator is IsMaxAttribute) then
-    Result := IsMaxAttribute(ADecorator).ValueMax
-  else
-  // IsMinAttribute
-  if (ADecorator is IsMinAttribute) then
-    Result := IsMinAttribute(ADecorator).ValueMin;
-end;
-
 procedure TValidationPipe._MapPipes(const AClass: TClass;
   const ARequest: IRouteRequest);
 var
@@ -289,8 +276,9 @@ var
   LKey: string;
   LFor: integer;
   LValues: TList<TValue>;
-  LValue_0: TValue;
-  LValue_1: TValue;
+  LParams_0: TArray<TValue>;
+  LParams_1: TArray<TValue>;
+  LParams_X: TArray<TValue>;
 begin
   LObject := nil;
   for LProperty in ARttiType.GetProperties do
@@ -304,15 +292,16 @@ begin
     begin
       LIsAttribute := IsAttribute(LDecorator);
       LKey := AClass.ClassName + '->' + LProperty.Name;
-      LValue_1 := _GetValues(LKey, LDecorator);
+      LParams_1 := IsAttribute(LDecorator).Params;
       if FJsonMapped.TryGetValue(LKey, LValues) then
       begin
         for LFor := 0 to LValues.Count -1 do
         begin
-          LValue_0 := LValues[LFor];
+          LParams_0 := TECLBr.ArrayMerge<TValue>([LValues[LFor]], LParams_1);
+          LParams_X := TECLBr.ArrayMerge<TValue>(LParams_0, [LFor]);
           LValidation := TValidationInfo.Create;
           LValidation.Validator := LIsAttribute.Validation.Create as TValidatorConstraint;
-          LValidation.Args := TValidationArguments.Create([LValue_0, LValue_1, LFor],
+          LValidation.Args := TValidationArguments.Create(LParams_X,
                                                           LIsAttribute.TagName,
                                                           LProperty.Name,
                                                           LIsAttribute.Message,

@@ -16,6 +16,7 @@ type
     function TagName: string;
     function Message: string;
     function Validation: TValidation; virtual; abstract;
+    function Params: TArray<TValue>; virtual;
   end;
 
 implementation
@@ -31,6 +32,11 @@ end;
 function IsAttribute.Message: string;
 begin
   Result := FMessage;
+end;
+
+function IsAttribute.Params: TArray<TValue>;
+begin
+  Result := [];
 end;
 
 function IsAttribute.TagName: string;
