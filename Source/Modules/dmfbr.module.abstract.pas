@@ -36,11 +36,14 @@ uses
   dmfbr.bind;
 
 type
+  TModuleAbstract = class;
+  TModuleClass = class of TModuleAbstract;
+
   TRoutes = array of TRoute;
   TBinds = array of TBind<TObject>;
-  TImports = array of TClass;
+  TImports = array of TModuleClass;
   TExportedBinds = array of TBind<TObject>;
-  TRouteHandlers = array of TClass;
+  TRouteHandlers = array of TRouteHandlerClass;
 
   TModuleAbstract = class
   public

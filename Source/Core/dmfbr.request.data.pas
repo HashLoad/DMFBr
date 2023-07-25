@@ -115,12 +115,11 @@ begin
   for LFor := 0 to FContent.Count - 1 do
   begin
     LSeparatorPos := Pos('=', FContent[LFor]);
-    if LSeparatorPos > 0 then
-    begin
-      LKey := Trim(Copy(FContent[LFor], 1, LSeparatorPos - 1));
-      LValue := Trim(Copy(FContent[LFor], LSeparatorPos + 1, Length(FContent[LFor])));
-      FKeyValue.AddOrSetValue(LKey, LValue);
-    end;
+    if LSeparatorPos = 0 then
+      continue;
+    LKey := Trim(Copy(FContent[LFor], 1, LSeparatorPos - 1));
+    LValue := Trim(Copy(FContent[LFor], LSeparatorPos + 1, Length(FContent[LFor])));
+    FKeyValue.AddOrSetValue(LKey, LValue);
   end;
 end;
 

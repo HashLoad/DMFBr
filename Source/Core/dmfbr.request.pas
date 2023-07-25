@@ -48,8 +48,8 @@ type
   TRouteRequest = class(TInterfacedObject, IRouteRequest)
   private
     class var FAuth: TAuth;
+    class var FBearer: TBearer;
     FObject: TObject;
-    FBearer: TBearer;
     FHeader: TRequestData;
     FParams: TRequestData;
     FQuerys: TRequestData;
@@ -60,11 +60,11 @@ type
     FPort: integer;
     FContentType: string;
   public
-    constructor Create; overload;
     constructor Create(const AHeader: TStrings; const AParams: TStrings;
       const AQuerys: TStrings; const ABody: string; const AHost: string;
       const AContentType: string; const AMethod: string;
-      const AURL: string; const APort: integer); overload;
+      const AURL: string; const APort: integer; const AUserName: string;
+      const APassword: string; const AToken: string);
     destructor Destroy; override;
     procedure SetObject(const AObject: TObject);
     procedure SetBody(const ABody: string);
@@ -81,6 +81,8 @@ type
     function Password: string;
     function Token: string;
     function AsObject: TObject;
+    class procedure SetUserData(const AUserName: string; const APassword: string;
+      const AToken: string);
   end;
 
 implementation
@@ -100,9 +102,9 @@ end;
 constructor TRouteRequest.Create(const AHeader: TStrings; const AParams: TStrings;
   const AQuerys: TStrings; const ABody: string; const AHost: string;
   const AContentType: string; const AMethod: string;
-  const AURL: string; const APort: integer);
+  const AURL: string; const APort: integer; const AUserName: string;
+  const APassword: string; const AToken: string);
 begin
-  FBearer := TBearer.Create;
   FHeader := TRequestData.Create;
   FParams := TRequestData.Create;
   FQuerys := TRequestData.Create;
@@ -115,16 +117,13 @@ begin
   FMethod := AMethod;
   FURL := AURL;
   FPort := APort;
-end;
-
-constructor TRouteRequest.Create;
-begin
-
+  FAuth.Username := AUserName;
+  FAuth.Password := APassword;
+  FBearer.Token := AToken;
 end;
 
 destructor TRouteRequest.Destroy;
 begin
-  FBearer.Free;
   FHeader.Free;
   FParams.Free;
   FQuerys.Free;
@@ -183,6 +182,14 @@ begin
   FObject := AObject;
 end;
 
+class procedure TRouteRequest.SetUserData(const AUserName: string;
+  const APassword: string; const AToken: string);
+begin
+  FAuth.Username := AUserName;
+  FAuth.Password := APassword;
+  FBearer.Token := AToken;
+end;
+
 function TRouteRequest.Token: string;
 begin
   Result := FBearer.Token;
@@ -200,8 +207,10 @@ end;
 
 initialization
     TRouteRequest.FAuth := TAuth.Create;
+    TRouteRequest.FBearer := TBearer.Create;
 
 finalization
     TRouteRequest.FAuth.Free;
+    TRouteRequest.FBearer.Free;
 
 end.

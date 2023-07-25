@@ -42,7 +42,7 @@ uses
   dmfbr.route.key,
   dmfbr.route.abstract,
   dmfbr.route.manager,
-  eclbr.objects,
+  eclbr.objectlib,
   dmfbr.injector,
   dmfbr.request;
 
@@ -172,8 +172,8 @@ end;
 
 function TTracker._CreateModule(const AModule: TClass): TModuleAbstract;
 begin
-  Result := FAppInjector^.Get<TObjectFactory>
-                         .CreateInstance(AModule) as TModuleAbstract;
+  Result := FAppInjector^.Get<TObjectLib>
+                         .Factory(AModule) as TModuleAbstract;
 end;
 
 procedure TTracker._GuardianRoute(const ARoute: TRouteAbstract);
@@ -252,15 +252,15 @@ begin
   Result := nil;
   LEndPoint := FRouteManager.FindEndpoint(AArgs.Path);
   if LEndPoint = '' then
-    Exit;
+    exit;
   for LKey in FRoutes.Keys do
   begin
     if LKey.Path <> LEndPoint then
-      Continue;
+      continue;
     LRoute := FRoutes.Items[LKey];
     _GuardianRoute(LRoute);
     Result := _RouteMiddlewares(LRoute);
-    Break;
+    break;
   end;
 end;
 

@@ -1,7 +1,6 @@
 {
              DMFBr - Development Modular Framework for Delphi
 
-
                    Copyright (c) 2023, Isaque Pinheiro
                           All rights reserved.
 
@@ -46,7 +45,10 @@ uses
   dmfbr.exception,
   dmfbr.register,
   dmfbr.request,
-  dmfbr.validation.interfaces;
+  dmfbr.validation.interfaces,
+  dmfbr.route.handler,
+  dmfbr.rpc.interfaces,
+  dmfbr.rpc.resource;
 
 type
   TModularBr = class sealed
@@ -60,7 +62,9 @@ type
     FModuleStarted: boolean;
     FListener: TListener;
     FRequest: IRouteRequest;
+    FGuardCallback: TGuardCallback;
     FRegister: TRegister;
+    FRPCProviderServer: IRPCProviderServer;
     procedure _ResolveDisposeRouteModule(const APath: string);
   public
     constructor Create;
@@ -72,8 +76,11 @@ type
       const AInitialRoutePath: string = '/'): TModularBr;
     procedure Finalize;
     procedure DisposeRouteModule(const APath: String);
-    procedure UsePipes(const AValidationPipe: IValidationPipe);
-    procedure RegisterRouteHandler(const ARouteHandler: TClass);
+    procedure RegisterRouteHandler(const ARouteHandler: TRouteHandlerClass);
+    function UseGuard(const AGuardCallback: TGuardCallback): TModularBr;
+    function UsePipes(const AValidationPipe: IValidationPipe): TModularBr;
+    function UseRPC(const ARPCProviderServer: IRPCProviderServer): TModularBr;
+    function PublishRPC(const ARPCName: string; const ARPCClass: TRPCResourceClass): TModularBr;
     function LoadRouteModule(const APath: string;
       const AReq: IRouteRequest = nil): TResultPair<Exception, TRouteAbstract>;
     function Get<T: class, constructor>(ATag: string = ''): T;
@@ -112,6 +119,7 @@ begin
   if Assigned(FListener) then
     FListener := nil;
   FModuleStarted := false;
+  FRPCProviderServer.Stop;
   inherited;
 end;
 
@@ -180,18 +188,39 @@ begin
   {$ENDIF}
 end;
 
-procedure TModularBr.UsePipes(const AValidationPipe: IValidationPipe);
+function TModularBr.UseGuard(const AGuardCallback: TGuardCallback): TModularBr;
+begin
+  FGuardCallback := AGuardCallback;
+  Result := Self;
+end;
+
+function TModularBr.UsePipes(const AValidationPipe: IValidationPipe): TModularBr;
 begin
   FRegister.UsePipes(AValidationPipe);
+  Result := Self;
+end;
+
+function TModularBr.UseRPC(const ARPCProviderServer: IRPCProviderServer): TModularBr;
+begin
+  FRPCProviderServer := ARPCProviderServer;
+  FRPCProviderServer.Start;
+  Result := Self;
 end;
 
 function TModularBr.LoadRouteModule(const APath: string;
   const AReq: IRouteRequest): TResultPair<Exception, TRouteAbstract>;
 var
   LRouteHandle: TClass;
+  LIsAccessGranted: boolean;
 begin
   FRequest := AReq;
   try
+    if Assigned(FGuardCallback) then
+    begin
+      LIsAccessGranted := FGuardCallback;
+      if not LIsAccessGranted then
+        raise EUnauthorizedException.Create('');
+    end;
     LRouteHandle := FRegister.FindRecord(APath);
     if LRouteHandle <> nil then
     begin
@@ -213,7 +242,16 @@ begin
   end;
 end;
 
-procedure TModularBr.RegisterRouteHandler(const ARouteHandler: TClass);
+function TModularBr.PublishRPC(const ARPCName: string;
+  const ARPCClass: TRPCResourceClass): TModularBr;
+begin
+  if not Assigned(FRPCProviderServer) then
+    raise ERPCProviderNotSetException.Create;
+  FRPCProviderServer.PublishRPC(ARPCName, ARPCClass);
+  Result := Self;
+end;
+
+procedure TModularBr.RegisterRouteHandler(const ARouteHandler: TRouteHandlerClass);
 begin
   FRegister.Add(ARouteHandler);
 end;

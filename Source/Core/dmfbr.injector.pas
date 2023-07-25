@@ -67,7 +67,7 @@ var
 implementation
 
 uses
-  eclbr.objects,
+  eclbr.objectlib,
   dmfbr.tracker,
   dmfbr.bind.provider,
   dmfbr.bind.service,
@@ -182,7 +182,7 @@ end;
 
 procedure TCoreInjector._ObjectFactoryInjector;
 begin
-  Self.Singleton<TObjectFactory>;
+  Self.Singleton<TObjectLib>;
 end;
 
 procedure TAppInjector.CreateModularInjector;

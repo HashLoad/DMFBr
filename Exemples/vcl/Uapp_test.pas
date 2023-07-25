@@ -16,9 +16,9 @@ uses
 
 type
   TFormPing = class(TForm)
-    Button1: TButton;
+    Ping: TButton;
     procedure FormCreate(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure PingClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -37,7 +37,7 @@ uses
 
 {$R *.dfm}
 
-procedure TFormPing.Button1Click(Sender: TObject);
+procedure TFormPing.PingClick(Sender: TObject);
 var
   LRouteHandler: TPingRouteHandler;
 begin

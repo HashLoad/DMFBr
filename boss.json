@@ -6,7 +6,7 @@
 	"mainsrc": "Source/",
 	"projects": [],
 	"dependencies": {
-		"github.com/HashLoad/ECLBr": "^1.0.4",
+		"github.com/HashLoad/ECLBr": "^1.0.4.1",
 		"github.com/HashLoad/InjectorBr": "^0.1.9",
 		"github.com/HashLoad/ResultPairBr": "^0.1.8"
 	}

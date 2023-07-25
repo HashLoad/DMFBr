@@ -14,7 +14,6 @@ type
     FValueMin: TValue;
   public
     constructor Create(const AValueMin: Extended; const AMessage: string = ''); reintroduce;
-    function ValueMin: TValue;
     function Validation: TValidation; override;
     function Params: TArray<TValue>; override;
   end;
@@ -38,11 +37,6 @@ end;
 function IsMinAttribute.Validation: TValidation;
 begin
   Result := TIsMin;
-end;
-
-function IsMinAttribute.ValueMin: TValue;
-begin
-  Result := FValueMin;
 end;
 
 end.

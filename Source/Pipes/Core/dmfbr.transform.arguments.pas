@@ -1,3 +1,30 @@
+{
+             DMFBr - Development Modular Framework for Delphi
+
+                   Copyright (c) 2023, Isaque Pinheiro
+                          All rights reserved.
+
+                    GNU Lesser General Public License
+                      Versão 3, 29 de junho de 2007
+
+       Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+       A todos é permitido copiar e distribuir cópias deste documento de
+       licença, mas mudá-lo não é permitido.
+
+       Esta versão da GNU Lesser General Public License incorpora
+       os termos e condições da versão 3 da GNU General Public License
+       Licença, complementado pelas permissões adicionais listadas no
+       arquivo LICENSE na pasta principal.
+}
+
+{
+  @abstract(DMFBr Framework for Delphi)
+  @created(01 Mai 2023)
+  @author(Isaque Pinheiro <isaquesp@gmail.com>)
+  @homepage(https://www.isaquepinheiro.com.br)
+  @documentation(https://dmfbr-en.docs-br.com)
+}
+
 unit dmfbr.transform.arguments;
 
 interface
@@ -9,18 +36,18 @@ uses
 type
   TTransformArguments = class(TInterfacedObject, ITransformArguments)
   private
+    FValues: TArray<TValue>;
     FTagName: string;
     FFieldName: string;
-    FValue: TValue;
     FObjectType: TClass;
     FMessage: string;
   public
-    constructor Create(const AValue: TValue; const ATagName: string;
-      const AFieldName: string; const AMessage: string;
-      const AObjectType: TClass);
-    function Value: TValue;
+    constructor Create(const AValues: TArray<TValue>;
+      const ATagName: string; const AFieldName: string;
+      const AMessage: string; const AObjectType: TClass);
     function TagName: string;
     function FieldName: string;
+    function Values: TArray<TValue>;
     function Message: string;
     function ObjectType: TClass;
   end;
@@ -29,13 +56,13 @@ implementation
 
 { TConverterArguments }
 
-constructor TTransformArguments.Create(const AValue: TValue;
-  const ATagName: string; const AFieldName: string; const AMessage: string;
-  const AObjectType: TClass);
+constructor TTransformArguments.Create(const AValues: TArray<TValue>;
+  const ATagName: string; const AFieldName: string;
+  const AMessage: string; const AObjectType: TClass);
 begin
   FTagName := ATagName;
   FFieldName := AFieldName;
-  FValue := AValue;
+  FValues := AValues;
   FMessage := AMessage;
   FObjectType := AObjectType;
 end;
@@ -60,9 +87,9 @@ begin
   Result := FTagName;
 end;
 
-function TTransformArguments.Value: TValue;
+function TTransformArguments.Values: TArray<TValue>;
 begin
-  Result := FValue;
+  Result := FValues;
 end;
 
 end.

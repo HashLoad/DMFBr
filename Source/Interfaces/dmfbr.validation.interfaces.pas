@@ -18,7 +18,7 @@ type
     function Values: TArray<TValue>;
     function Message: string;
     function TypeName: string;
-    function AsObject: TObject;
+    function ObjectType: TClass;
   end;
 
   IValidatorConstraint = interface
@@ -30,10 +30,13 @@ type
     ['{8FCA8E1D-2244-46A2-9E7C-DB6F829EB6EE}']
     function GetValidator: IValidatorConstraint;
     function GetValidationArguments: IValidationArguments;
+    function GetValue: TValue;
     procedure SetValidator(const Value: IValidatorConstraint);
     procedure SetValidationArguments(const Value: IValidationArguments);
+    procedure SetValue(const Value: TValue);
     property Validator: IValidatorConstraint read GetValidator write SetValidator;
     property Args: IValidationArguments read GetValidationArguments write SetValidationArguments;
+    property Value: TValue read GetValue write SetValue;
   end;
 
   IValidationPipe = interface
@@ -42,6 +45,12 @@ type
     function BuildMessages: string;
     procedure Validate(const AClass: TClass; const ARequest: IRouteRequest);
   end;
+
+//  IValidatorOptions = interface
+//    ['{6E078A2B-4E6A-4B27-B80A-18EB9C0EF27F}']
+//    procedure SetOption(const APair: TPair<string, TValue>);
+//    function GetOption(const AKey: string): TValue;
+//  end;
 
 implementation
 

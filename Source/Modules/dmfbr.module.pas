@@ -46,6 +46,7 @@ uses
   dmfbr.bind;
 
 type
+  TValue = Rtti.TValue;
   TRouteMiddleware = dmfbr.route.abstract.TRouteMiddleware;
   TRoute = dmfbr.route.TRoute;
   TRouteAbstract = dmfbr.route.abstract.TRouteAbstract;
@@ -55,7 +56,6 @@ type
   TExportedBinds = dmfbr.module.abstract.TExportedBinds;
   TConstructorParams = app.injector.events.TConstructorParams;
   TRouteHandlers = dmfbr.module.abstract.TRouteHandlers;
-  TValue = Rtti.TValue;
   TRouteManager = dmfbr.route.manager.TRouteManager;
   IRouteRequest = dmfbr.request.IRouteRequest;
 
@@ -85,28 +85,28 @@ type
 
 // RouteModule
 function RouteModule(const APath: string;
-  const AModule: TClass): TRouteModule; overload;
-function RouteModule(const APath: string; const AModule: TClass;
+  const AModule: TModuleClass): TRouteModule; overload;
+function RouteModule(const APath: string; const AModule: TModuleClass;
   const AMiddlewares: TMiddlewares): TRouteModule; overload;
 
 // RouteChild
-function RouteChild(const APath: string; const AModule: TClass;
+function RouteChild(const APath: string; const AModule: TModuleClass;
   const AMiddlewares: TMiddlewares = []): TRouteChild;
 
 implementation
 
 uses
-  eclbr.objects,
+  eclbr.objectlib,
   dmfbr.exception;
 
-function RouteModule(const APath: string; const AModule: TClass): TRouteModule;
+function RouteModule(const APath: string; const AModule: TModuleClass): TRouteModule;
 begin
   Result := nil;
   if Assigned(AModule) then
     Result := TRouteModule.AddModule(APath, AModule, nil{, []}) as TRouteModule;
 end;
 
-function RouteModule(const APath: string; const AModule: TClass;
+function RouteModule(const APath: string; const AModule: TModuleClass;
   const AMiddlewares: TMiddlewares): TRouteModule;
 begin
   Result := nil;
@@ -116,7 +116,7 @@ begin
                                      AMiddlewares) as TRouteModule;
 end;
 
-function RouteChild(const APath: string; const AModule: TClass;
+function RouteChild(const APath: string; const AModule: TModuleClass;
   const AMiddlewares: TMiddlewares): TRouteChild;
 begin
   Result := TRouteChild.AddModule(APath,
@@ -207,8 +207,8 @@ var
 begin
   for LHandler in RouteHandlers do
   begin
-    FRouteHandlers.Add(TRouteHandler(AppInjector^.Get<TObjectFactory>
-                                                 .CreateInstance(LHandler)));
+    FRouteHandlers.Add(TRouteHandler(AppInjector^.Get<TObjectLib>
+                                                 .Factory(LHandler)));
   end;
 end;
 

@@ -16,7 +16,7 @@ type
     ['{C410FE53-25D6-42DD-8D61-AF04E97C1628}']
     function TagName: string;
     function FieldName: string;
-    function Value: TValue;
+    function Values: TArray<TValue>;
     function Message: string;
     function ObjectType: TClass;
   end;
@@ -30,10 +30,13 @@ type
     ['{8FCA8E1D-2244-46A2-9E7C-DB6F829EB6EE}']
     function GetTransform: ITransformPipe;
     function GetTransformArguments: ITransformArguments;
+    function GetValue: TValue;
     procedure SetTransform(const Value: ITransformPipe);
     procedure SetTransformArguments(const Value: ITransformArguments);
+    procedure SetValue(const Value: TValue);
     property Transform: ITransformPipe read GetTransform write SetTransform;
     property Metadata: ITransformArguments read GetTransformArguments write SetTransformArguments;
+    property Value: TValue read GetValue write SetValue;
   end;
 
 implementation
