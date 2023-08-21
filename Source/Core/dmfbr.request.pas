@@ -3,6 +3,7 @@ unit dmfbr.request;
 interface
 
 uses
+  Rtti,
   SysUtils,
   Classes,
   EncdDecd,
@@ -10,22 +11,6 @@ uses
   dmfbr.request.data;
 
 type
-  TAuth = class
-  private
-    FUsername: string;
-    FPassword: string;
-  public
-    property Username: string read FUsername write FUsername;
-    property Password: string read FPassword write FPassword;
-  end;
-
-  TBearer = class
-  private
-    FToken: string;
-  public
-    property Token: string read FToken write FToken;
-  end;
-
   IRouteRequest = interface
     ['{F344E29D-8FF3-4F39-BC8C-53EE130E02D4}']
     procedure SetObject(const AObject: TObject);
@@ -39,16 +24,12 @@ type
     function Host: string;
     function Port: integer;
     function ContentType: string;
-    function Username: string;
-    function Password: string;
-    function Token: string;
+    function Authorization: string;
     function AsObject: TObject;
   end;
 
   TRouteRequest = class(TInterfacedObject, IRouteRequest)
   private
-    class var FAuth: TAuth;
-    class var FBearer: TBearer;
     FObject: TObject;
     FHeader: TRequestData;
     FParams: TRequestData;
@@ -59,15 +40,16 @@ type
     FHost: string;
     FPort: integer;
     FContentType: string;
+    FAuthorization: string;
   public
     constructor Create(const AHeader: TStrings; const AParams: TStrings;
       const AQuerys: TStrings; const ABody: string; const AHost: string;
       const AContentType: string; const AMethod: string;
-      const AURL: string; const APort: integer; const AUserName: string;
-      const APassword: string; const AToken: string);
+      const AURL: string; const APort: integer; const AAuthorization: string);
     destructor Destroy; override;
     procedure SetObject(const AObject: TObject);
     procedure SetBody(const ABody: string);
+    procedure SetAuthorization(const AAuthorization: string);
     function Header: TRequestData;
     function Params: TRequestData;
     function Querys: TRequestData;
@@ -77,12 +59,8 @@ type
     function Method: string;
     function URL: string;
     function Port: integer;
-    function Username: string;
-    function Password: string;
-    function Token: string;
+    function Authorization: string;
     function AsObject: TObject;
-    class procedure SetUserData(const AUserName: string; const APassword: string;
-      const AToken: string);
   end;
 
 implementation
@@ -102,8 +80,7 @@ end;
 constructor TRouteRequest.Create(const AHeader: TStrings; const AParams: TStrings;
   const AQuerys: TStrings; const ABody: string; const AHost: string;
   const AContentType: string; const AMethod: string;
-  const AURL: string; const APort: integer; const AUserName: string;
-  const APassword: string; const AToken: string);
+  const AURL: string; const APort: integer; const AAuthorization: string);
 begin
   FHeader := TRequestData.Create;
   FParams := TRequestData.Create;
@@ -113,13 +90,11 @@ begin
   FQuerys.Assign(AQuerys);
   FBody := ABody;
   FHost := AHost;
-  FContentType := AContentType;
   FMethod := AMethod;
   FURL := AURL;
   FPort := APort;
-  FAuth.Username := AUserName;
-  FAuth.Password := APassword;
-  FBearer.Token := AToken;
+  FContentType := AContentType;
+  FAuthorization := AAuthorization;
 end;
 
 destructor TRouteRequest.Destroy;
@@ -157,11 +132,6 @@ begin
   Result := FParams;
 end;
 
-function TRouteRequest.Password: string;
-begin
-  Result := FAuth.Password;
-end;
-
 function TRouteRequest.Port: integer;
 begin
   Result := FPort;
@@ -182,35 +152,19 @@ begin
   FObject := AObject;
 end;
 
-class procedure TRouteRequest.SetUserData(const AUserName: string;
-  const APassword: string; const AToken: string);
+procedure TRouteRequest.SetAuthorization(const AAuthorization: string);
 begin
-  FAuth.Username := AUserName;
-  FAuth.Password := APassword;
-  FBearer.Token := AToken;
+  FAuthorization := AAuthorization;
 end;
 
-function TRouteRequest.Token: string;
+function TRouteRequest.Authorization: string;
 begin
-  Result := FBearer.Token;
+  Result := FAuthorization;
 end;
 
 function TRouteRequest.URL: string;
 begin
   Result := FURL;
 end;
-
-function TRouteRequest.Username: string;
-begin
-  Result := FAuth.Username;
-end;
-
-initialization
-    TRouteRequest.FAuth := TAuth.Create;
-    TRouteRequest.FBearer := TBearer.Create;
-
-finalization
-    TRouteRequest.FAuth.Free;
-    TRouteRequest.FBearer.Free;
 
 end.

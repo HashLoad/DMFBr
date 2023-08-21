@@ -33,7 +33,9 @@ interface
 uses
   SysUtils,
   StrUtils,
+  Classes,
   TypInfo,
+  NetEncoding,
   Web.HTTPApp,
   dmfbr.module,
   dmfbr.modular,
@@ -49,6 +51,9 @@ function HorseModular(const ACharset: string): THorseCallback; overload;
 procedure Middleware(Req: THorseRequest; Res: THorseResponse; Next: TNextProc);
 
 implementation
+
+const
+  AUTHORIZATION = 'Authorization';
 
 function HorseModular(const AppModule: TModule): THorseCallback;
 begin
@@ -139,8 +144,6 @@ begin
                                    Req.RawWebRequest.Method,
                                    Req.RawWebRequest.PathInfo,
                                    Req.RawWebRequest.ServerPort,
-                                   Req.RawWebRequest.UserAgent,
-                                   '',
                                    Req.RawWebRequest.Authorization);
   except
     exit;

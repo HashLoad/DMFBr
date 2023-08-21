@@ -339,12 +339,12 @@ var
   LDecorator: TCustomAttribute;
   LValidation: IValidationInfo;
   LIsAttribute: IsAttribute;
-  LClassType: TClass;
-  LKey: string;
-  LFor: integer;
   LValues: TList<TValue>;
   LParams_0: TArray<TValue>;
   LParams_X: TArray<TValue>;
+  LClassType: TClass;
+  LKey: string;
+  LFor: integer;
 begin
   LClassType := nil;
   for LProperty in ARttiType.GetProperties do

@@ -207,8 +207,8 @@ var
 begin
   for LHandler in RouteHandlers do
   begin
-    FRouteHandlers.Add(TRouteHandler(AppInjector^.Get<TObjectLib>
-                                                 .Factory(LHandler)));
+    FRouteHandlers.Add(TRouteHandler(FAppInjector^.Get<TObjectLib>
+                                                  .Factory(LHandler)));
   end;
 end;
 

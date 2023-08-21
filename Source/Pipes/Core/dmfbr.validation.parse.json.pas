@@ -41,7 +41,7 @@ uses
 
 type
   TCallbackSetValue = reference to procedure(const AClassType: TClass;
-                                             const AFieldname: string;
+                                             const AFieldName: string;
                                              const AValue: TValue);
   EJsonBrException = class(Exception);
   TArrayKeyMap = array of string;

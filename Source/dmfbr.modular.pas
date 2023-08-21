@@ -119,7 +119,8 @@ begin
   if Assigned(FListener) then
     FListener := nil;
   FModuleStarted := false;
-  FRPCProviderServer.Stop;
+  if Assigned(FRPCProviderServer) then
+    FRPCProviderServer.Stop;
   inherited;
 end;
 
@@ -214,32 +215,28 @@ var
   LIsAccessGranted: boolean;
 begin
   FRequest := AReq;
-  try
-    if Assigned(FGuardCallback) then
-    begin
-      LIsAccessGranted := FGuardCallback;
-      if not LIsAccessGranted then
-        raise EUnauthorizedException.Create('');
-    end;
-    LRouteHandle := FRegister.FindRecord(APath);
-    if LRouteHandle <> nil then
-    begin
-      if not FRegister.IsValidationPipe then
-      begin
-        Result.Failure(EBadRequestException.Create('Use the "UsePipes" command followed by "TValidationPipe.Create" to enable global validation pipes.'));
-        exit;
-      end;
-      FRegister.Pipe.Validate(LRouteHandle, FRequest);
-      if FRegister.Pipe.IsMessages then
-      begin
-        Result.Failure(EBadRequestException.Create(FRegister.Pipe.BuildMessages));
-        exit;
-      end;
-    end;
-    Result := FRouteParse.SelectRoute(APath, AReq, FListener);
-  finally
-    FRequest := nil;
+  if Assigned(FGuardCallback) then
+  begin
+    LIsAccessGranted := FGuardCallback;
+    if not LIsAccessGranted then
+      raise EUnauthorizedException.Create('');
   end;
+  LRouteHandle := FRegister.FindRecord(APath);
+  if LRouteHandle <> nil then
+  begin
+    if not FRegister.IsValidationPipe then
+    begin
+      Result.Failure(EBadRequestException.Create('Use the "UsePipes" command followed by "TValidationPipe.Create" to enable global validation pipes.'));
+      exit;
+    end;
+    FRegister.Pipe.Validate(LRouteHandle, FRequest);
+    if FRegister.Pipe.IsMessages then
+    begin
+      Result.Failure(EBadRequestException.Create(FRegister.Pipe.BuildMessages));
+      exit;
+    end;
+  end;
+  Result := FRouteParse.SelectRoute(APath, AReq, FListener);
 end;
 
 function TModularBr.PublishRPC(const ARPCName: string;
