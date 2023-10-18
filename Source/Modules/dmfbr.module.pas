@@ -96,7 +96,7 @@ function RouteChild(const APath: string; const AModule: TModuleClass;
 implementation
 
 uses
-  eclbr.objectlib,
+  eclbr.objects,
   dmfbr.exception;
 
 function RouteModule(const APath: string; const AModule: TModuleClass): TRouteModule;
@@ -207,7 +207,7 @@ var
 begin
   for LHandler in RouteHandlers do
   begin
-    FRouteHandlers.Add(TRouteHandler(FAppInjector^.Get<TObjectLib>
+    FRouteHandlers.Add(TRouteHandler(FAppInjector^.Get<TObjectEx>
                                                   .Factory(LHandler)));
   end;
 end;

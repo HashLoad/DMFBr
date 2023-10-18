@@ -42,7 +42,7 @@ uses
   dmfbr.route.key,
   dmfbr.route.abstract,
   dmfbr.route.manager,
-  eclbr.objectlib,
+  eclbr.objects,
   dmfbr.injector,
   dmfbr.request;
 
@@ -158,9 +158,7 @@ var
   LPath: string;
 begin
   LPath := FRouteManager.RemoveSuffix(LowerCase(ARoute.Path));
-  // Lista de Rotas
   FRoutes.AddOrSetValue(TRouteKey.Create(LPath, AParent), ARoute);
-  // Lista de EndPoints
   FRouteManager.EndPoints.Add(LPath);
   FRouteManager.EndPoints.Sort;
 end;
@@ -172,7 +170,7 @@ end;
 
 function TTracker._CreateModule(const AModule: TClass): TModuleAbstract;
 begin
-  Result := FAppInjector^.Get<TObjectLib>
+  Result := FAppInjector^.Get<TObjectEx>
                          .Factory(AModule) as TModuleAbstract;
 end;
 
@@ -295,9 +293,9 @@ begin
   begin
     if LKey.Schema <> AModuleName then
       continue;
-    // Remove os endpoints desse módulo da lista.
+    // Remove the endpoints of this module from the list.
     _RemoveEndPoint(LKey.Path);
-    // Remove todas as rotas/sub-rotas do módulo que está sendo destuído.
+    // Remove all routes/sub-routes of the module being destroyed.
     FRoutes.Remove(LKey);
   end;
 end;

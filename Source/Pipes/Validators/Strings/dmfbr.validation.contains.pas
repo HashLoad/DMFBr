@@ -45,7 +45,7 @@ type
 
 implementation
 
-{ TIsAlpha }
+{ TContains }
 
 function TContains.Validate(const Value: TValue;
   const Args: IValidationArguments): TResultValidation;
@@ -55,7 +55,7 @@ begin
   Result.Success(false);
   if Value.Kind in [tkString, tkLString, tkWString, tkUString] then
   begin
-    if Pos(Args.Values[0].ToString, Value.ToString) > 0 then
+    if Pos(Value.ToString, Args.Values[0].ToString) > 0 then
       Result.Success(true);
   end;
   if not Result.ValueSuccess then

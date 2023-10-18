@@ -6,7 +6,6 @@ uses
   SysUtils,
   dmfbr.decorator.isbase,
   dmfbr.validation.types;
-//  dmfbr.validation.isarray;
 
 type
   IsAllowAttribute = class(IsAttribute)

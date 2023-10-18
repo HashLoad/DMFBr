@@ -12,6 +12,7 @@ uses
 type
   TKeyValue = TDictionary<string, TValue>;
   TFiles = TDictionary<string, TStream>;
+  TArrayPair = TArray<TPair<string, string>>;
 
   TRequestData = class
   private
@@ -32,7 +33,7 @@ type
     function Required(const AValue: boolean): TRequestData;
     function ContainsKey(const AKey: string): boolean;
     function ContainsValue(const AValue: string): boolean;
-    function ToArray: TArray<TPair<string, string>>;
+    function ToArray: TArrayPair;
     function TryGetValue(const AKey: string; var AValue: string): boolean;
     function AddStream(const AKey: string; const AContent: TStream): TRequestData;
     function Value<T>(const AKey: string): T;
@@ -107,7 +108,8 @@ end;
 procedure TRequestData.Assign(const AContent: TStrings);
 var
   LFor: integer;
-  LKey, LValue: string;
+  LKey: string;
+  LValue: string;
   LSeparatorPos: integer;
 begin
   FContent.Assign(AContent);
@@ -151,21 +153,21 @@ begin
   Result := FKeyValue;
 end;
 
-function TRequestData.ToArray: TArray<TPair<string, string>>;
+function TRequestData.ToArray: TArrayPair;
 var
-  LPairArray: TArray<TPair<string, string>>;
+  LArrayPair: TArrayPair;
   LPair: TPair<string, TValue>;
   LIndex: Integer;
 begin
-  SetLength(LPairArray, FKeyValue.Count);
+  SetLength(LArrayPair, FKeyValue.Count);
   LIndex := 0;
   for LPair in FKeyValue do
   begin
-    LPairArray[LIndex].Key := LPair.Key;
-    LPairArray[LIndex].Value := LPair.Value.AsString;
+    LArrayPair[LIndex].Key := LPair.Key;
+    LArrayPair[LIndex].Value := LPair.Value.AsString;
     Inc(LIndex);
   end;
-  Result := LPairArray;
+  Result := LArrayPair;
 end;
 
 function TRequestData.TryGetValue(const AKey: string; var AValue: string): boolean;

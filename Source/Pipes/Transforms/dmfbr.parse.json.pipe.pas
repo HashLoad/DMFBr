@@ -71,8 +71,7 @@ var
 begin
   try
     TJsonMap.Map(Value.AsString, Metadata.ObjectType,
-      procedure (const AClassType: TClass; const AFieldName: string;
-                 const AValue: TValue)
+      procedure (const AClassType: TClass; const AFieldName: string; const AValue: TValue)
       begin
         LKey := AClassType.ClassName + '->' + AFieldName;
         if not FJsonMap.ContainsKey(LKey) then

@@ -39,7 +39,8 @@ uses
 type
   TValidatorConstraint = class(TInterfacedObject, IValidatorConstraint)
   public
-    function Validate(const Value: TValue; const Args: IValidationArguments): TResultValidation; virtual; abstract;
+    function Validate(const Value: TValue;
+      const Args: IValidationArguments): TResultValidation; virtual; abstract;
   end;
 
 implementation

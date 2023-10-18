@@ -1,7 +1,6 @@
 {
              DMFBr - Development Modular Framework for Delphi
 
-
                    Copyright (c) 2023, Isaque Pinheiro
                           All rights reserved.
 
@@ -26,20 +25,22 @@
   @documentation(https://dmfbr-en.docs-br.com)
 }
 
-unit dmfbr.validation.isboolean;
+unit dmfbr.validation.arraynotcontains;
 
 interface
 
 uses
   Rtti,
-  TypInfo,
   SysUtils,
   StrUtils,
   dmfbr.validator.constraint,
   dmfbr.validation.interfaces;
 
 type
-  TIsBoolean = class(TValidatorConstraint)
+  TArrayNotContains = class(TValidatorConstraint)
+  private
+    function _ArrayToString(const AValues: TArray<TValue>): string;
+    function _ArrayNotContainsAllElements(const ASource, AValues: TArray<TValue>): boolean;
   public
     function Validate(const Value: TValue;
       const Args: IValidationArguments): TResultValidation; override;
@@ -47,30 +48,64 @@ type
 
 implementation
 
-{ TIsBoolean }
+{ TArrayContains }
 
-function TIsBoolean.Validate(const Value: TValue;
+function TArrayNotContains.Validate(const Value: TValue;
   const Args: IValidationArguments): TResultValidation;
 var
   LMessage: string;
-//  LValue: boolean;
 begin
   Result.Success(false);
-//  if TryStrToBool(Value.ToString, LValue) then
-//    Result.Success(true);
-  if (Value.Kind = tkEnumeration) and (Value.TypeInfo = TypeInfo(Boolean)) then
-    Result.Success(true);
+  if Value.Kind in [tkArray, tkDynArray] then
+  begin
+    if _ArrayNotContainsAllElements(Value.AsType<TArray<TValue>>, Args.Values) then
+      Result.Success(true);
+  end;
   if not Result.ValueSuccess then
   begin
     LMessage := IfThen(Args.Message = '',
-                       Format('[%s] %s->%s [%s] must be a boolean value',
+                       Format('[%s] %s->%s [%s] must contain a %s values',
                        [Args.TagName,
                         Args.TypeName,
                         Args.Values[Length(Args.Values) -1].ToString,
-                        Args.FieldName]), Args.Message);
+                        Args.FieldName,
+                        _ArrayToString(Args.Values)]), Args.Message);
     Result.Failure(LMessage);
   end;
 end;
 
-end.
+function TArrayNotContains._ArrayToString(const AValues: TArray<TValue>): string;
+var
+  LItem: TValue;
+begin
+  Result := '';
+  for LItem in AValues do
+    Result := Result + LItem.ToString + ', ';
+end;
 
+function TArrayNotContains._ArrayNotContainsAllElements(const ASource, AValues: TArray<TValue>): boolean;
+var
+  LFor, LFind: integer;
+  LFound: boolean;
+begin
+  Result := true;
+  for LFor := Low(AValues) to High(AValues) do
+  begin
+    LFound := False;
+    for LFind := Low(ASource) to High(ASource) do
+    begin
+      if AValues[LFor].ToString <> ASource[LFind].ToString then
+      begin
+        LFound := true;
+        break;
+      end;
+    end;
+    if not LFound then
+    begin
+      Result := False;
+      exit;
+    end;
+  end;
+end;
+
+end.

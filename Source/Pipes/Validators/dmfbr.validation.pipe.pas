@@ -32,9 +32,12 @@ interface
 
 uses
   Rtti,
+  TypInfo,
   SysUtils,
   StrUtils,
   Generics.Collections,
+  eclbr.std,
+  eclbr.objects,
   dmfbr.route.handler,
   dmfbr.decorator.include,
   dmfbr.validation.include,
@@ -83,7 +86,7 @@ type
     FContext: TRttiContext;
     FValidations: TValidations;
     FTransforms: TTransforms;
-    FMessages: TList<string>;
+    FMessages: IAutoRef<TList<string>>;
     FJsonMapped: TJsonMapped;
     procedure _MapPipes(const AClass: TClass; const ARequest: IRouteRequest); inline;
     procedure _MapValidation(const AClass: TClass; const ARequest: IRouteRequest); inline;
@@ -104,32 +107,26 @@ type
 
 implementation
 
-uses
-  eclbr.interfaces,
-  eclbr.objectlib,
-  eclbr.sysutils;
-
 { TValidationPipe }
 
 constructor TValidationPipe.Create;
 begin
   FContext := TRttiContext.Create;
-  FMessages := TList<string>.Create;
+  FMessages := TAutoRef<TList<string>>.New(TList<string>.Create([]));
 end;
 
 destructor TValidationPipe.Destroy;
 begin
   FContext.Free;
-  FMessages.Free;
   inherited;
 end;
 
 function TValidationPipe.IsMessages: boolean;
 begin
   Result := false;
-  if FMessages = nil then
+  if FMessages.Get = nil then
     exit;
-  Result := FMessages.Count > 0;
+  Result := FMessages.Get.Count > 0;
 end;
 
 procedure TValidationPipe.Validate(const AClass: TClass;
@@ -140,10 +137,11 @@ var
   LResultTransform: TResultTransform;
   LResultValidation: TResultValidation;
 begin
-  FMessages.Clear;
+  FMessages.Get.Clear;
   FJsonMapped := TJsonMapped.Create([doOwnsValues]);
   FValidations := TValidations.Create;
   FTransforms := TTransforms.Create;
+  { TODO -oIsaque -cPerformance : Implementar threads nos FORs }
   try
     _MapValidation(AClass, ARequest);
     // Transforms
@@ -154,7 +152,7 @@ begin
       LResultTransform.TryException(
         procedure (Msg: string)
         begin
-          FMessages.Add(Msg);
+          FMessages.Get.Add(Msg);
         end,
         procedure (Value: TValue)
         begin
@@ -181,7 +179,7 @@ begin
       LResultValidation.TryException(
         procedure (Msg: string)
         begin
-          FMessages.Add(Msg);
+          FMessages.Get.Add(Msg);
         end,
         procedure (Value: boolean)
         begin
@@ -202,7 +200,7 @@ var
   LTransform: ITransformInfo;
   LValue: TValue;
   LResultBody: TResultTransform;
-  LFactory: IEclLib;
+  LObject: IObject;
 begin
   LBody := BodyAttribute(ADecorator);
   LValue := ARequest.Body;
@@ -210,10 +208,10 @@ begin
   begin
     if LBody.Transform.InheritsFrom(TParseJsonPipe) then
     begin
-      LFactory := TObjectLib.New;
+      LObject := TObjectEx.New;
       // Transform
       LTransform := TTransformInfo.Create;
-      LTransform.Transform := LFactory.Factory(LBody.Transform) as TParseJsonPipe;
+      LTransform.Transform := LObject.Factory(LBody.Transform) as TParseJsonPipe;
       LTransform.Value := LValue;
       LTransform.Metadata := TTransformArguments.Create([TValue.FromVariant(LBody.Value)],
                                                         LBody.TagName,
@@ -225,7 +223,7 @@ begin
       LResultBody.TryException(
         procedure (Msg: string)
         begin
-          FMessages.Add(Msg);
+          FMessages.Get.Add(Msg);
           exit;
         end,
         procedure (Value: TValue)
@@ -316,10 +314,29 @@ var
   LMethod: TRttiMethod;
   LDecorator: TCustomAttribute;
 begin
+  { TODO -oIsaque -cPerformance : Implementar threads nos FORs }
+  { TODO -oIsaque -cCache : Estudar uma forma de fazer cache dos decorators e
+                            aqui buscar do cache e não fazer reflexão }
+
+  {$IFDEF DEBUG}
+  DebugPrint('RttiType -> ' + ARttiType.Name);
+  {$ENDIF}
   for LMethod in ARttiType.GetMethods do
   begin
+    // LMethod.HasAttribute<>;
+    // Declare your end pointers as 'published';
+    // this will give you better performance in reflection.
+    if LMethod.Visibility <> TMemberVisibility.mvPublished then
+     continue;
+
+    {$IFDEF DEBUG}
+    DebugPrint('Method -> ' + LMethod.Name);
+    {$ENDIF}
     for LDecorator in LMethod.GetAttributes do
     begin
+      {$IFDEF DEBUG}
+      DebugPrint('Decorator -> ' + LDecorator.ClassName);
+      {$ENDIF}
       if LDecorator is BodyAttribute then
         _ResolveBody(LDecorator, ARequest)
       else
@@ -364,7 +381,7 @@ begin
       begin
         for LFor := 0 to LValues.Count -1 do
         begin
-          LParams_X := TUtils.ArrayMerge<TValue>(LParams_0, [LFor]);
+          LParams_X := TStd.ArrayMerge<TValue>(LParams_0, [LFor]);
           LValidation := TValidationInfo.Create;
           LValidation.Value := LValues[LFor];
           LValidation.Validator := LIsAttribute.Validation.Create as TValidatorConstraint;
@@ -425,10 +442,10 @@ var
   IFor: Integer;
 begin
   LJsonArray := '[';
-  for IFor := 0 to FMessages.Count - 1 do
+  for IFor := 0 to FMessages.Get.Count - 1 do
   begin
-    LJsonItem := Format('"%s"', [FMessages[IFor]]);
-    if IFor < FMessages.Count - 1 then
+    LJsonItem := Format('"%s"', [FMessages.Get[IFor]]);
+    if IFor < FMessages.Get.Count - 1 then
       LJsonItem := LJsonItem + ',';
     LJsonArray := LJsonArray + LJsonItem;
   end;

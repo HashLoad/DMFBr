@@ -1,4 +1,4 @@
-unit dmfbr.decorator.arraycontains;
+unit dmfbr.decorator.arraynotcontains;
 
 interface
 
@@ -6,10 +6,10 @@ uses
   SysUtils,
   dmfbr.decorator.isbase,
   dmfbr.validation.types,
-  dmfbr.validation.arraycontains;
+  dmfbr.validation.arraynotcontains;
 
 type
-  ArrayContainsAttribute = class(IsAttribute)
+  ArrayNotContainsAttribute = class(IsAttribute)
   private
     FValue: TArray<TValue>;
   public
@@ -22,22 +22,22 @@ implementation
 
 { ArrayContains }
 
-constructor ArrayContainsAttribute.Create(const AValue: TArray<TValue>;
+constructor ArrayNotContainsAttribute.Create(const AValue: TArray<TValue>;
   const AMessage: string);
 begin
   inherited Create(AMessage);
-  FTagName := 'ArrayContains';
+  FTagName := 'ArrayNotContains';
   FValue := AValue;
 end;
 
-function ArrayContainsAttribute.Params: TArray<TValue>;
+function ArrayNotContainsAttribute.Params: TArray<TValue>;
 begin
   Result := FValue;
 end;
 
-function ArrayContainsAttribute.Validation: TValidation;
+function ArrayNotContainsAttribute.Validation: TValidation;
 begin
-  Result := TArrayContains;
+  Result := TArrayNotContains;
 end;
 
 end.

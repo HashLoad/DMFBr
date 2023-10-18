@@ -107,7 +107,7 @@ begin
       Result.Failure(LError);
       Exit;
     end;
-    // Destroy o modulo e as rotas filhas dele
+    // Destroy the module and its child routes.
     FreeAndNil(LRoute.ModuleInstance);
     Result.Success(True);
   except on E: Exception do

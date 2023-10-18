@@ -33,20 +33,17 @@ implementation
 uses
   dmfbr.modular,
   app.module,
-  ping.route.handler;
+  ping.route.handler,
+  eclbr.objects;
 
 {$R *.dfm}
 
 procedure TFormPing.PingClick(Sender: TObject);
 var
-  LRouteHandler: TPingRouteHandler;
+  LRouteHandler: IAutoRef<TPingRouteHandler>;
 begin
-  LRouteHandler := TPingRouteHandler.Create;
-  try
-    ShowMessage(LRouteHandler.Ping);
-  finally
-    LRouteHandler.Free;
-  end;
+  LRouteHandler := TAutoRef<TPingRouteHandler>.New(TPingRouteHandler.Create());
+  ShowMessage(LRouteHandler.Get.Ping);
 end;
 
 procedure TFormPing.FormCreate(Sender: TObject);

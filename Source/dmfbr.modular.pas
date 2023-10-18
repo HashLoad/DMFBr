@@ -121,6 +121,7 @@ begin
   FModuleStarted := false;
   if Assigned(FRPCProviderServer) then
     FRPCProviderServer.Stop;
+  FRegister := nil;
   inherited;
 end;
 
@@ -221,19 +222,19 @@ begin
     if not LIsAccessGranted then
       raise EUnauthorizedException.Create('');
   end;
-  LRouteHandle := FRegister.FindRecord(APath);
-  if LRouteHandle <> nil then
+  if FRegister.IsValidationPipe then
   begin
-    if not FRegister.IsValidationPipe then
+    LRouteHandle := FRegister.FindRecord(APath);
+    if LRouteHandle <> nil then
     begin
-      Result.Failure(EBadRequestException.Create('Use the "UsePipes" command followed by "TValidationPipe.Create" to enable global validation pipes.'));
-      exit;
-    end;
-    FRegister.Pipe.Validate(LRouteHandle, FRequest);
-    if FRegister.Pipe.IsMessages then
-    begin
-      Result.Failure(EBadRequestException.Create(FRegister.Pipe.BuildMessages));
-      exit;
+      FRegister.Pipe.Validate(LRouteHandle, FRequest);
+      if FRegister.Pipe.IsMessages then
+      begin
+        Result.Failure(EBadRequestException.Create(FRegister.Pipe.BuildMessages));
+        exit;
+      end;
+//      Result.Failure(EBadRequestException.Create('Use the "UsePipes" command followed by "TValidationPipe.Create" to enable global validation pipes.'));
+//      exit;
     end;
   end;
   Result := FRouteParse.SelectRoute(APath, AReq, FListener);

@@ -56,7 +56,7 @@ function TParseUUIDPipe.Transform(const Value: TValue;
 var
   LMessage: string;
 begin
-  if TRegExLib.IsUUID(Value.ToString)  then
+  if TRegExLib.IsMatchUUID(Value.ToString)  then
     Result.Success(Value)
   else
   begin

@@ -47,7 +47,8 @@ type
 implementation
 
 uses
-  jsonbr;
+  jsonbr,
+  jsonbr.builders;
 
 { TParseJsonBrPipe }
 
