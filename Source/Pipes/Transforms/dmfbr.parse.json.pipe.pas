@@ -1,3 +1,30 @@
+{
+             DMFBr - Development Modular Framework for Delphi
+
+                   Copyright (c) 2023, Isaque Pinheiro
+                          All rights reserved.
+
+                    GNU Lesser General Public License
+                      Versão 3, 29 de junho de 2007
+
+       Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+       A todos é permitido copiar e distribuir cópias deste documento de
+       licença, mas mudá-lo não é permitido.
+
+       Esta versão da GNU Lesser General Public License incorpora
+       os termos e condições da versão 3 da GNU General Public License
+       Licença, complementado pelas permissões adicionais listadas no
+       arquivo LICENSE na pasta principal.
+}
+
+{
+  @abstract(DMFBr Framework for Delphi)
+  @created(01 Mai 2023)
+  @author(Isaque Pinheiro <isaquesp@gmail.com>)
+  @homepage(https://www.isaquepinheiro.com.br)
+  @documentation(https://dmfbr-en.docs-br.com)
+}
+
 unit dmfbr.parse.json.pipe;
 
 interface
@@ -43,14 +70,13 @@ var
   LKey: string;
 begin
   try
-    TJsonMap.Map(Metadata.Value.AsString, Metadata.ObjectType,
-      procedure (const AInstance: TObject; const AProperty: TRttiProperty;
-                 const AValue: Variant)
+    TJsonMap.Map(Value.AsString, Metadata.ObjectType,
+      procedure (const AClassType: TClass; const AFieldName: string; const AValue: TValue)
       begin
-        LKey := AInstance.ClassName + '->' + AProperty.Name;
+        LKey := AClassType.ClassName + '->' + AFieldName;
         if not FJsonMap.ContainsKey(LKey) then
           FJsonMap.Add(LKey, TList<TValue>.Create);
-        FJsonMap[LKey].Add(TValue.FromVariant(AValue))
+        FJsonMap[LKey].Add(AValue);
       end);
     Result.Success(FJsonMap);
   except

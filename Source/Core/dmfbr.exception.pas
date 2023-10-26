@@ -109,6 +109,11 @@ type
     constructor CreateFmt(const Msg: string; const Args: array of const); override;
   end;
 
+  ERPCProviderNotSetException = class(Exception)
+  public
+    constructor Create;
+  end;
+
   EAppInjector = class(Exception)
   public
     constructor Create;
@@ -290,6 +295,13 @@ var
 begin
   LMsg := ifThen(Msg = '', cMSG_DEFAULT_ARGS, Msg);
   Create(Format(LMsg, Args));
+end;
+
+{ ERPCProviderNotSetException }
+
+constructor ERPCProviderNotSetException.Create;
+begin
+  inherited Create('Provider not set. Call the method SetProvider before using UseRPC()');
 end;
 
 end.

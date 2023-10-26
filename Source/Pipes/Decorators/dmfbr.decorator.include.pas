@@ -18,7 +18,13 @@ uses
   dmfbr.decorator.isenum,
   dmfbr.decorator.isempty,
   dmfbr.decorator.ismax,
-  dmfbr.decorator.ismin;
+  dmfbr.decorator.ismin,
+  dmfbr.decorator.isminlength,
+  dmfbr.decorator.ismaxlength,
+  dmfbr.decorator.isalpha,
+  dmfbr.decorator.isalphanumeric,
+  dmfbr.decorator.contains,
+  dmfbr.decorator.islength;
 
 type
   ParamAttribute = dmfbr.decorator.param.ParamAttribute;
@@ -37,6 +43,12 @@ type
   IsDateAttribute = dmfbr.decorator.isdate.IsDateAttribute;
   IsMinAttribute = dmfbr.decorator.ismin.IsMinAttribute;
   IsMaxAttribute = dmfbr.decorator.ismax.IsMaxAttribute;
+  IsMinLengthAttribute = dmfbr.decorator.isminlength.IsMinLengthAttribute;
+  IsMaxLengthAttribute = dmfbr.decorator.ismaxlength.IsMaxLengthAttribute;
+  IsLengthAttribute = dmfbr.decorator.islength.IsLengthAttribute;
+  IsAlphaAttribute = dmfbr.decorator.isalpha.IsAlphaAttribute;
+  IsAlphaNumericAttribute = dmfbr.decorator.isalphanumeric.IsAlphaNumericAttribute;
+  ContainsAttribute = dmfbr.decorator.contains.ContainsAttribute;
 
 implementation
 

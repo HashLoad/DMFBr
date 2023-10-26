@@ -46,6 +46,7 @@ uses
 type
   TReturnPair = TResultPair<Exception, TRouteAbstract>;
   TListener = TProc<string>;
+  TGuardCallback = TFunc<boolean>;
 
   TRouteParse = class
   private
@@ -113,10 +114,13 @@ begin
                      LArgs := TRouteParam.Create(LRouteParts, AReq);
                      if Assigned(FListener) then
                        FListener(LRouteParts);
-                     // Se "LRouteResult.isFailure", quer dizer que a rota enterior
-                     // não foi encontrada, então a VAR Exception deve ser liberada
-                     // para que somente a última rota do loop, atribua valor a
-                     // "LRouteResult".
+                     // If the condition "LRouteResult.isFailure" indicates that
+                     // the previous route was not found, it is necessary to release
+                     // the "Exception" variable to ensure that only the last route
+                     // in the loop assigns a value to "LRouteResult."
+                     // This ensures that any previously encountered errors or
+                     // failures do not interfere with the final result, allowing
+                     // the last valid route to be correctly assigned and used.
                      if LRouteResult.isFailure then
                        LRouteResult.DestroyFailure;
                      LRouteResult := FService.GetRoute(LArgs);
@@ -138,9 +142,9 @@ begin
   for LRoute in LRoutes do
   begin
     if (LRoute = '') or (LRoute = '/') then
-      Continue;
+      continue;
     if LRoute = LRoutes[High(LRoutes)] then
-      Break;
+      break;
     LResult := ACallback(LRoute);
   end;
 end;

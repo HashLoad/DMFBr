@@ -25,8 +25,8 @@ unit dmfbr.route.abstract;
 interface
 
 uses
-  Generics.Collections,
   SysUtils,
+  Generics.Collections,
   dmfbr.request;
 
 type
@@ -40,6 +40,8 @@ type
   end;
 
   TMiddlewares = array of TClass;
+  TRouteClass = class of TRouteAbstract;
+  TRouteMiddlewareClass = class of TRouteMiddleware;
 
   TRouteAbstract = class
   private

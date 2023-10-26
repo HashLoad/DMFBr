@@ -108,8 +108,8 @@ begin
     Exit;
   if not Assigned(Result.ValueSuccess.ModuleInstance) then
   begin
-    Result.ValueSuccess.ModuleInstance := FAppInjector^.Get<TObjectFactory>
-                                                       .CreateInstance(Result.ValueSuccess.Module);
+    Result.ValueSuccess.ModuleInstance := FAppInjector^.Get<TObjectEx>
+                                                       .Factory(Result.ValueSuccess.Module);
   end;
   // Vai aos eventos middlewares se existir
   _RouteMiddleware(Result.ValueSuccess);

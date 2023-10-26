@@ -16,9 +16,9 @@ uses
 
 type
   TFormPing = class(TForm)
-    Button1: TButton;
+    Ping: TButton;
     procedure FormCreate(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure PingClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -33,20 +33,17 @@ implementation
 uses
   dmfbr.modular,
   app.module,
-  ping.route.handler;
+  ping.route.handler,
+  eclbr.objects;
 
 {$R *.dfm}
 
-procedure TFormPing.Button1Click(Sender: TObject);
+procedure TFormPing.PingClick(Sender: TObject);
 var
-  LRouteHandler: TPingRouteHandler;
+  LRouteHandler: IAutoRef<TPingRouteHandler>;
 begin
-  LRouteHandler := TPingRouteHandler.Create;
-  try
-    ShowMessage(LRouteHandler.Ping);
-  finally
-    LRouteHandler.Free;
-  end;
+  LRouteHandler := TAutoRef<TPingRouteHandler>.New(TPingRouteHandler.Create());
+  ShowMessage(LRouteHandler.Get.Ping);
 end;
 
 procedure TFormPing.FormCreate(Sender: TObject);

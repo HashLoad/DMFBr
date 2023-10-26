@@ -1,12 +1,43 @@
+{
+             DMFBr - Development Modular Framework for Delphi
+
+
+                   Copyright (c) 2023, Isaque Pinheiro
+                          All rights reserved.
+
+                    GNU Lesser General Public License
+                      Versão 3, 29 de junho de 2007
+
+       Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+       A todos é permitido copiar e distribuir cópias deste documento de
+       licença, mas mudá-lo não é permitido.
+
+       Esta versão da GNU Lesser General Public License incorpora
+       os termos e condições da versão 3 da GNU General Public License
+       Licença, complementado pelas permissões adicionais listadas no
+       arquivo LICENSE na pasta principal.
+}
+
+{
+  @abstract(DMFBr Framework for Delphi)
+  @created(01 Mai 2023)
+  @author(Isaque Pinheiro <isaquesp@gmail.com>)
+  @homepage(https://www.isaquepinheiro.com.br)
+  @documentation(https://dmfbr-en.docs-br.com)
+}
+
 unit dmfbr.validation.pipe;
 
 interface
 
 uses
   Rtti,
+  TypInfo,
   SysUtils,
   StrUtils,
   Generics.Collections,
+  eclbr.std,
+  eclbr.objects,
   dmfbr.route.handler,
   dmfbr.decorator.include,
   dmfbr.validation.include,
@@ -18,28 +49,36 @@ type
 
   TValidationInfo = class(TInterfacedObject, IValidationInfo)
   private
+    FValue: TValue;
     FValidationPipe: IValidatorConstraint;
     FValidationArguments: IValidationArguments;
     function GetValidator: IValidatorConstraint;
     function GetValidationArguments: IValidationArguments;
+    function GetValue: TValue;
     procedure SetValidator(const Value: IValidatorConstraint);
     procedure SetValidationArguments(const Value: IValidationArguments);
+    procedure SetValue(const Value: TValue);
   public
     property Validator: IValidatorConstraint read GetValidator write SetValidator;
     property ValidationArguments: IValidationArguments read GetValidationArguments write SetValidationArguments;
+    property Value: TValue read GetValue write SetValue;
   end;
 
   TTransformInfo = class(TInterfacedObject, ITransformInfo)
   private
+    FValue: TValue;
     FConvertPipe: ITransformPipe;
     FConvertArguments: ITransformArguments;
     function GetTransform: ITransformPipe;
     function GetTransformArguments: ITransformArguments;
+    function GetValue: TValue;
     procedure SetTransform(const Value: ITransformPipe);
     procedure SetTransformArguments(const Value: ITransformArguments);
+    procedure SetValue(const Value: TValue);
   public
     property Transform: ITransformPipe read GetTransform write SetTransform;
     property TransformArguments: ITransformArguments read GetTransformArguments write SetTransformArguments;
+    property Value: TValue read GetValue write SetValue;
   end;
 
   TValidationPipe = class(TInterfacedObject, IValidationPipe)
@@ -47,17 +86,17 @@ type
     FContext: TRttiContext;
     FValidations: TValidations;
     FTransforms: TTransforms;
-    FMessages: TList<string>;
+    FMessages: IAutoRef<TList<string>>;
     FJsonMapped: TJsonMapped;
+    procedure _MapPipes(const AClass: TClass; const ARequest: IRouteRequest); inline;
+    procedure _MapValidation(const AClass: TClass; const ARequest: IRouteRequest); inline;
+    procedure _ResolveParams(const ADecorator: TCustomAttribute; const ARequest: IRouteRequest); inline;
+    procedure _ResolveQuerys(const ADecorator: TCustomAttribute; const ARequest: IRouteRequest); inline;
     procedure _ResolvePipes(const AClass: TClass; const ARttiType: TRttiType;
-      const ARequest: IRouteRequest);
+      const ARequest: IRouteRequest); inline;
     procedure _ResolvePayLoads(const ARttiType: TRttiType;
-      const ARequest: IRouteRequest);
-    procedure _MapPipes(const AClass: TClass; const ARequest: IRouteRequest);
-    procedure _MapValidation(const AClass: TClass; const ARequest: IRouteRequest);
+      const ARequest: IRouteRequest); inline;
     procedure _ResolveBody(const ADecorator: TCustomAttribute; const ARequest: IRouteRequest);
-    procedure _ResolveParams(const ADecorator: TCustomAttribute; const ARequest: IRouteRequest);
-    procedure _ResolveQuerys(const ADecorator: TCustomAttribute; const ARequest: IRouteRequest);
   public
     constructor Create;
     destructor Destroy; override;
@@ -68,77 +107,79 @@ type
 
 implementation
 
-uses
-  eclbr.interfaces,
-  eclbr.objects,
-  eclbr.sysutils;
-
 { TValidationPipe }
 
 constructor TValidationPipe.Create;
 begin
   FContext := TRttiContext.Create;
-  FMessages := TList<string>.Create;
+  FMessages := TAutoRef<TList<string>>.New(TList<string>.Create([]));
 end;
 
 destructor TValidationPipe.Destroy;
 begin
   FContext.Free;
-  FMessages.Free;
   inherited;
 end;
 
 function TValidationPipe.IsMessages: boolean;
 begin
   Result := false;
-  if FMessages = nil then
+  if FMessages.Get = nil then
     exit;
-  Result := FMessages.Count > 0;
+  Result := FMessages.Get.Count > 0;
 end;
 
 procedure TValidationPipe.Validate(const AClass: TClass;
   const ARequest: IRouteRequest);
 var
   LValidator: IValidationInfo;
-  LTransform: ITransformInfo;
+  LInfo: ITransformInfo;
   LResultTransform: TResultTransform;
   LResultValidation: TResultValidation;
 begin
-  FMessages.Clear;
+  FMessages.Get.Clear;
   FJsonMapped := TJsonMapped.Create([doOwnsValues]);
   FValidations := TValidations.Create;
   FTransforms := TTransforms.Create;
+  { TODO -oIsaque -cPerformance : Implementar threads nos FORs }
   try
     _MapValidation(AClass, ARequest);
-    for LTransform in FTransforms do
+    // Transforms
+    for LInfo in FTransforms do
     begin
-      LResultTransform := LTransform.Transform.Transform(LTransform.Metadata.Value,
-                                                         LTransform.Metadata);
+      LResultTransform := LInfo.Transform.Transform(LInfo.Value,
+                                                    LInfo.Metadata);
       LResultTransform.TryException(
         procedure (Msg: string)
         begin
-          FMessages.Add(Msg);
+          FMessages.Get.Add(Msg);
         end,
         procedure (Value: TValue)
         begin
-          if LTransform.Metadata.TagName = 'body' then
-            ARequest.SetBody(Value.AsType<string>)
+          if LInfo.Metadata.TagName = 'body' then
+          begin
+            if Value.IsObject then
+              ARequest.SetObject(Value.AsType<TObject>)
+            else
+              ARequest.SetBody(Value.AsType<string>);
+          end
           else
-          if LTransform.Metadata.TagName = 'param' then
-            ARequest.Params.AddOrSetValue(LTransform.Metadata.FieldName, Value)
+          if LInfo.Metadata.TagName = 'param' then
+            ARequest.Params.AddOrSetValue(LInfo.Metadata.FieldName, Value)
           else
-          if LTransform.Metadata.TagName = 'query' then
-            ARequest.Querys.AddOrSetValue(LTransform.Metadata.FieldName, Value);
+          if LInfo.Metadata.TagName = 'query' then
+            ARequest.Querys.AddOrSetValue(LInfo.Metadata.FieldName, Value);
         end);
     end;
+    // Validations
     for LValidator in FValidations do
     begin
-      LResultValidation := LValidator.Validator.Validate(LValidator.Args.Values[0],
+      LResultValidation := LValidator.Validator.Validate(LValidator.Value,
                                                          LValidator.Args);
       LResultValidation.TryException(
         procedure (Msg: string)
         begin
-          FMessages.Add(Msg);
+          FMessages.Get.Add(Msg);
         end,
         procedure (Value: boolean)
         begin
@@ -159,34 +200,56 @@ var
   LTransform: ITransformInfo;
   LValue: TValue;
   LResultBody: TResultTransform;
-  LFactory: IECLBr;
+  LObject: IObject;
 begin
   LBody := BodyAttribute(ADecorator);
   LValue := ARequest.Body;
-  LFactory := TObjectFactory.New;
-  // Transform
-  LTransform := TTransformInfo.Create;
-  LTransform.Transform := LFactory.CreateInstance(LBody.Transform) as TTransformPipe;
-  LTransform.Metadata := TTransformArguments.Create(LValue,
-                                                    LBody.TagName,
-                                                    '',
-                                                    LBody.Message,
-                                                    LBody.ObjectType);
-  LResultBody := LTransform.Transform
-                           .Transform(LValue, LTransform.Metadata);
-  LResultBody.TryException(
-    procedure (Msg: string)
+  if LBody.Transform <> nil then
+  begin
+    if LBody.Transform.InheritsFrom(TParseJsonPipe) then
     begin
-      FMessages.Add(Msg);
-      exit;
-    end,
-    procedure (Value: TValue)
-    var
-      LItem: TPair<string, TList<TValue>>;
+      LObject := TObjectEx.New;
+      // Transform
+      LTransform := TTransformInfo.Create;
+      LTransform.Transform := LObject.Factory(LBody.Transform) as TParseJsonPipe;
+      LTransform.Value := LValue;
+      LTransform.Metadata := TTransformArguments.Create([TValue.FromVariant(LBody.Value)],
+                                                        LBody.TagName,
+                                                        'body',
+                                                        LBody.Message,
+                                                        LBody.ObjectType);
+      LResultBody := LTransform.Transform
+                               .Transform(LValue, LTransform.Metadata);
+      LResultBody.TryException(
+        procedure (Msg: string)
+        begin
+          FMessages.Get.Add(Msg);
+          exit;
+        end,
+        procedure (Value: TValue)
+        var
+          LItem: TPair<string, TList<TValue>>;
+        begin
+          for LItem in Value.AsType<TJsonMapped> do
+            FJsonMapped.AddOrSetValue(LItem.Key, TList<TValue>.Create(LItem.Value));
+        end);
+    end
+    else
     begin
-      for LItem in Value.AsType<TJsonMapped> do
-        FJsonMapped.AddOrSetValue(LItem.Key, TList<TValue>.Create(LItem.Value));
-    end);
+      if LBody.Transform <> nil then
+      begin
+        LTransform := TTransformInfo.Create;
+        LTransform.Transform := LBody.Transform.Create as TTransformPipe;
+        LTransform.Value := LValue;
+        LTransform.Metadata := TTransformArguments.Create([TValue.FromVariant(LBody.Value)],
+                                                          LBody.TagName,
+                                                          'body',
+                                                          LBody.Message,
+                                                          LBody.ObjectType);
+        FTransforms.Add(LTransform);
+      end;
+    end;
+  end;
   _MapPipes(LBody.ObjectType, ARequest);
 end;
 
@@ -205,7 +268,8 @@ begin
   begin
     LTransform := TTransformInfo.Create;
     LTransform.Transform := LParam.Transform.Create as TTransformPipe;
-    LTransform.Metadata := TTransformArguments.Create(LValue,
+    LTransform.Value := LValue;
+    LTransform.Metadata := TTransformArguments.Create([TValue.FromVariant(LParam.Value)],
                                                       LParam.TagName,
                                                       LParam.ParamName,
                                                       LParam.Message,
@@ -216,11 +280,12 @@ begin
   if LParam.Validation <> nil then
   begin
     LValidation := TValidationInfo.Create;
+    LValidation.Value := TValue.Empty;
     LValidation.Validator := LParam.Validation.Create as TValidatorConstraint;
-    LValidation.Args := TValidationArguments.Create([LValue],
+    LValidation.Args := TValidationArguments.Create([''],
                                                     LParam.TagName,
                                                     LParam.ParamName,
-                                                    LParam.Message, 'TParams', nil);
+                                                    LParam.Message, 'param', nil);
     FValidations.Add(LValidation);
   end;
 end;
@@ -249,10 +314,29 @@ var
   LMethod: TRttiMethod;
   LDecorator: TCustomAttribute;
 begin
+  { TODO -oIsaque -cPerformance : Implementar threads nos FORs }
+  { TODO -oIsaque -cCache : Estudar uma forma de fazer cache dos decorators e
+                            aqui buscar do cache e não fazer reflexão }
+
+  {$IFDEF DEBUG}
+  DebugPrint('RttiType -> ' + ARttiType.Name);
+  {$ENDIF}
   for LMethod in ARttiType.GetMethods do
   begin
+    // LMethod.HasAttribute<>;
+    // Declare your end pointers as 'published';
+    // this will give you better performance in reflection.
+    if LMethod.Visibility <> TMemberVisibility.mvPublished then
+     continue;
+
+    {$IFDEF DEBUG}
+    DebugPrint('Method -> ' + LMethod.Name);
+    {$ENDIF}
     for LDecorator in LMethod.GetAttributes do
     begin
+      {$IFDEF DEBUG}
+      DebugPrint('Decorator -> ' + LDecorator.ClassName);
+      {$ENDIF}
       if LDecorator is BodyAttribute then
         _ResolveBody(LDecorator, ARequest)
       else
@@ -272,41 +356,41 @@ var
   LDecorator: TCustomAttribute;
   LValidation: IValidationInfo;
   LIsAttribute: IsAttribute;
-  LObject: TObject;
-  LKey: string;
-  LFor: integer;
   LValues: TList<TValue>;
   LParams_0: TArray<TValue>;
-  LParams_1: TArray<TValue>;
   LParams_X: TArray<TValue>;
+  LClassType: TClass;
+  LKey: string;
+  LFor: integer;
 begin
-  LObject := nil;
+  LClassType := nil;
   for LProperty in ARttiType.GetProperties do
   begin
     if LProperty.PropertyType.TypeKind = tkClass then
     begin
-      LObject := LProperty.GetValue(AClass).AsObject;
-      _MapPipes(LObject.ClassType, ARequest);
+      LClassType := LProperty.GetValue(AClass).AsClass;
+      // Map Object
+      _MapPipes(LClassType, ARequest);
     end;
     for LDecorator in LProperty.GetAttributes do
     begin
       LIsAttribute := IsAttribute(LDecorator);
       LKey := AClass.ClassName + '->' + LProperty.Name;
-      LParams_1 := IsAttribute(LDecorator).Params;
+      LParams_0 := IsAttribute(LDecorator).Params;
       if FJsonMapped.TryGetValue(LKey, LValues) then
       begin
         for LFor := 0 to LValues.Count -1 do
         begin
-          LParams_0 := TECLBr.ArrayMerge<TValue>([LValues[LFor]], LParams_1);
-          LParams_X := TECLBr.ArrayMerge<TValue>(LParams_0, [LFor]);
+          LParams_X := TStd.ArrayMerge<TValue>(LParams_0, [LFor]);
           LValidation := TValidationInfo.Create;
+          LValidation.Value := LValues[LFor];
           LValidation.Validator := LIsAttribute.Validation.Create as TValidatorConstraint;
           LValidation.Args := TValidationArguments.Create(LParams_X,
                                                           LIsAttribute.TagName,
                                                           LProperty.Name,
                                                           LIsAttribute.Message,
                                                           AClass.ClassName,
-                                                          LObject);
+                                                          LClassType);
           FValidations.Add(LValidation);
         end;
       end;
@@ -329,7 +413,8 @@ begin
   begin
     LTransform := TTransformInfo.Create;
     LTransform.Transform := LQuery.Transform.Create as TTransformPipe;
-    LTransform.Metadata := TTransformArguments.Create(LValue,
+    LTransform.Value := LValue;
+    LTransform.Metadata := TTransformArguments.Create([TValue.FromVariant(LQuery.Value)],
                                                       LQuery.TagName,
                                                       LQuery.QueryName,
                                                       LQuery.Message,
@@ -340,13 +425,12 @@ begin
   if LQuery.Validation <> nil then
   begin
     LValidation := TValidationInfo.Create;
+    LValidation.Value := LValue;
     LValidation.Validator := LQuery.Validation.Create as TValidatorConstraint;
-    LValidation.Args := TValidationArguments.Create([LValue],
-                                                     LQuery.TagName,
-                                                     LQuery.QueryName,
-                                                     LQuery.Message,
-                                                     'TQuerys',
-                                                     nil);
+    LValidation.Args := TValidationArguments.Create([''],
+                                                    LQuery.TagName,
+                                                    LQuery.QueryName,
+                                                    LQuery.Message, 'query', nil);
     FValidations.Add(LValidation);
   end;
 end;
@@ -358,10 +442,10 @@ var
   IFor: Integer;
 begin
   LJsonArray := '[';
-  for IFor := 0 to FMessages.Count - 1 do
+  for IFor := 0 to FMessages.Get.Count - 1 do
   begin
-    LJsonItem := Format('"%s"', [FMessages[IFor]]);
-    if IFor < FMessages.Count - 1 then
+    LJsonItem := Format('"%s"', [FMessages.Get[IFor]]);
+    if IFor < FMessages.Get.Count - 1 then
       LJsonItem := LJsonItem + ',';
     LJsonArray := LJsonArray + LJsonItem;
   end;
@@ -376,6 +460,11 @@ begin
   Result := FValidationPipe;
 end;
 
+function TValidationInfo.GetValue: TValue;
+begin
+  Result := FValue;
+end;
+
 function TValidationInfo.GetValidationArguments: IValidationArguments;
 begin
   Result := FValidationArguments;
@@ -384,6 +473,11 @@ end;
 procedure TValidationInfo.SetValidator(const Value: IValidatorConstraint);
 begin
   FValidationPipe := Value;
+end;
+
+procedure TValidationInfo.SetValue(const Value: TValue);
+begin
+  FValue := Value;
 end;
 
 procedure TValidationInfo.SetValidationArguments(const Value: IValidationArguments);
@@ -398,6 +492,11 @@ begin
   Result := FConvertArguments;
 end;
 
+function TTransformInfo.GetValue: TValue;
+begin
+  Result := FValue;
+end;
+
 function TTransformInfo.GetTransform: ITransformPipe;
 begin
   Result := FConvertPipe;
@@ -406,6 +505,11 @@ end;
 procedure TTransformInfo.SetTransformArguments(const Value: ITransformArguments);
 begin
   FConvertArguments := Value;
+end;
+
+procedure TTransformInfo.SetValue(const Value: TValue);
+begin
+  FValue := Value;
 end;
 
 procedure TTransformInfo.SetTransform(const Value: ITransformPipe);

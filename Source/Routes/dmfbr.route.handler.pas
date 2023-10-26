@@ -44,6 +44,8 @@ type
     function RoutePatch(const ARoute: string): TRouteHandler; virtual;
   end;
 
+  TRouteHandlerClass = class of TRouteHandler;
+
 implementation
 
 uses

@@ -53,9 +53,9 @@ end;
 
 function TRouteManager.RemoveSuffix(const ARoute: string): string;
 const
-  Pattern = '(/{[^/]*})|(/:[^/]+)$';
+  LPattern = '(/{[^/]*})|(/:[^/]+)$';
 begin
-  Result := TRegEx.Replace(ARoute, Pattern, '');
+  Result := TRegEx.Replace(ARoute, LPattern, '');
 end;
 
 end.

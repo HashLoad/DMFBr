@@ -12,13 +12,13 @@ object FormPing: TFormPing
   Font.Style = []
   OnCreate = FormCreate
   TextHeight = 15
-  object Button1: TButton
+  object Ping: TButton
     Left = 154
     Top = 146
     Width = 277
     Height = 99
     Caption = 'Route '#39'/Ping'#39
     TabOrder = 0
-    OnClick = Button1Click
+    OnClick = PingClick
   end
 end

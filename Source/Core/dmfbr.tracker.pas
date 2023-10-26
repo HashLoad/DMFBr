@@ -158,9 +158,7 @@ var
   LPath: string;
 begin
   LPath := FRouteManager.RemoveSuffix(LowerCase(ARoute.Path));
-  // Lista de Rotas
   FRoutes.AddOrSetValue(TRouteKey.Create(LPath, AParent), ARoute);
-  // Lista de EndPoints
   FRouteManager.EndPoints.Add(LPath);
   FRouteManager.EndPoints.Sort;
 end;
@@ -172,8 +170,8 @@ end;
 
 function TTracker._CreateModule(const AModule: TClass): TModuleAbstract;
 begin
-  Result := FAppInjector^.Get<TObjectFactory>
-                         .CreateInstance(AModule) as TModuleAbstract;
+  Result := FAppInjector^.Get<TObjectEx>
+                         .Factory(AModule) as TModuleAbstract;
 end;
 
 procedure TTracker._GuardianRoute(const ARoute: TRouteAbstract);
@@ -252,15 +250,15 @@ begin
   Result := nil;
   LEndPoint := FRouteManager.FindEndpoint(AArgs.Path);
   if LEndPoint = '' then
-    Exit;
+    exit;
   for LKey in FRoutes.Keys do
   begin
     if LKey.Path <> LEndPoint then
-      Continue;
+      continue;
     LRoute := FRoutes.Items[LKey];
     _GuardianRoute(LRoute);
     Result := _RouteMiddlewares(LRoute);
-    Break;
+    break;
   end;
 end;
 
@@ -295,9 +293,9 @@ begin
   begin
     if LKey.Schema <> AModuleName then
       continue;
-    // Remove os endpoints desse módulo da lista.
+    // Remove the endpoints of this module from the list.
     _RemoveEndPoint(LKey.Path);
-    // Remove todas as rotas/sub-rotas do módulo que está sendo destuído.
+    // Remove all routes/sub-routes of the module being destroyed.
     FRoutes.Remove(LKey);
   end;
 end;

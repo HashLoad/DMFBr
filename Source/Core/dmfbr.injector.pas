@@ -182,7 +182,7 @@ end;
 
 procedure TCoreInjector._ObjectFactoryInjector;
 begin
-  Self.Singleton<TObjectFactory>;
+  Self.Singleton<TObjectEx>;
 end;
 
 procedure TAppInjector.CreateModularInjector;

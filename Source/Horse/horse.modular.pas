@@ -33,7 +33,9 @@ interface
 uses
   SysUtils,
   StrUtils,
+  Classes,
   TypInfo,
+  NetEncoding,
   Web.HTTPApp,
   dmfbr.module,
   dmfbr.modular,
@@ -47,19 +49,16 @@ function _ResolverRouteRequest(const Req: THorseRequest): IRouteRequest;
 function HorseModular(const AppModule: TModule): THorseCallback; overload;
 function HorseModular(const ACharset: string): THorseCallback; overload;
 procedure Middleware(Req: THorseRequest; Res: THorseResponse; Next: TNextProc);
-procedure UsePipes(const AValidationPipe: IValidationPipe);
 
 implementation
+
+const
+  AUTHORIZATION = 'Authorization';
 
 function HorseModular(const AppModule: TModule): THorseCallback;
 begin
   Modular.Start(AppModule);
   Result := HorseModular('UTF-8');
-end;
-
-procedure UsePipes(const AValidationPipe: IValidationPipe);
-begin
-  Modular.UsePipes(AValidationPipe);
 end;
 
 function HorseModular(const ACharset: string): THorseCallback;
@@ -144,7 +143,8 @@ begin
                                    Req.RawWebRequest.ContentType,
                                    Req.RawWebRequest.Method,
                                    Req.RawWebRequest.PathInfo,
-                                   Req.RawWebRequest.ServerPort);
+                                   Req.RawWebRequest.ServerPort,
+                                   Req.RawWebRequest.Authorization);
   except
     exit;
   end;

@@ -1,3 +1,31 @@
+{
+             DMFBr - Development Modular Framework for Delphi
+
+
+                   Copyright (c) 2023, Isaque Pinheiro
+                          All rights reserved.
+
+                    GNU Lesser General Public License
+                      Versão 3, 29 de junho de 2007
+
+       Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+       A todos é permitido copiar e distribuir cópias deste documento de
+       licença, mas mudá-lo não é permitido.
+
+       Esta versão da GNU Lesser General Public License incorpora
+       os termos e condições da versão 3 da GNU General Public License
+       Licença, complementado pelas permissões adicionais listadas no
+       arquivo LICENSE na pasta principal.
+}
+
+{
+  @abstract(DMFBr Framework for Delphi)
+  @created(01 Mai 2023)
+  @author(Isaque Pinheiro <isaquesp@gmail.com>)
+  @homepage(https://www.isaquepinheiro.com.br)
+  @documentation(https://dmfbr-en.docs-br.com)
+}
+
 unit dmfbr.validation.arguments;
 
 interface
@@ -10,7 +38,7 @@ type
   TValidationArguments = class(TInterfacedObject, IValidationArguments)
   private
     FValues: TArray<TValue>;
-    FObject: TObject;
+    FObjectType: TClass;
     FTagName: string;
     FFieldName: string;
     FMessage: string;
@@ -18,34 +46,34 @@ type
   public
     constructor Create(const AValues: TArray<TValue>;
       const ATagName: string; const AFieldName: string; const AMessage: string;
-      const ATypeName: string; const AObject: TObject);
+      const ATypeName: string; const AObjectType: TClass);
     function Values: TArray<TValue>;
     function TagName: string;
     function FieldName: string;
     function Message: string;
     function TypeName: string;
-    function AsObject: TObject;
+    function ObjectType: TClass;
   end;
 
 implementation
 
 { TArgumentMetadata }
 
-function TValidationArguments.AsObject: TObject;
+function TValidationArguments.ObjectType: TClass;
 begin
-  Result := FObject;
+  Result := FObjectType;
 end;
 
 constructor TValidationArguments.Create(const AValues: TArray<TValue>;
-  const ATagName: string; const AFieldName: string; const AMessage: string;
-  const ATypeName: string; const AObject: TObject);
+  const ATagName: string; const AFieldName: string;
+  const AMessage: string; const ATypeName: string; const AObjectType: TClass);
 begin
   FTagName := ATagName;
   FFieldName := AFieldName;
   FValues := AValues;
   FMessage := AMessage;
   FTypeName := ATypeName;
-  FObject := AObject;
+  FObjectType := AObjectType;
 end;
 
 function TValidationArguments.FieldName: string;
